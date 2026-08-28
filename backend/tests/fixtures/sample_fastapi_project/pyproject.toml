@@ -1,0 +1,16 @@
+[project]
+name = "sample-fastapi-app"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+]
+
+[project.scripts]
+sample-app = "src.main:main"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.3.0",
+]

@@ -1,0 +1,84 @@
+name: codethera
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: codethera-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - codethera_mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - codethera
+
+  backend:
+    profiles: ["app"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: codethera-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      CODETHERA_MONGODB_URI: mongodb://mongodb:27017
+      CODETHERA_WORKSPACE_ROOT: /workspace
+      CODETHERA_CORS_ORIGINS: http://localhost:5173,http://localhost
+    volumes:
+      - ./workspace:/workspace
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/ready')",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - codethera
+
+  frontend:
+    profiles: ["app"]
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
+    container_name: codethera-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+    networks:
+      - codethera
+
+networks:
+  codethera:
+    driver: bridge
+
+volumes:
+  codethera_mongo_data:
