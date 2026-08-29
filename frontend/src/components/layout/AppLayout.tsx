@@ -1,4 +1,4 @@
-import { Button, Navbar, Sidebar, SidebarItemGroup, SidebarItems } from "flowbite-react";
+import { Button, Sidebar, SidebarItemGroup, SidebarItems } from "flowbite-react";
 import { NavLink, Outlet } from "react-router-dom";
 
 import { MenuIcon } from "@/components/common/MenuIcon";
@@ -39,7 +39,7 @@ export function AppLayout() {
   const clearSession = useAuthStore((state) => state.clearSession);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900">
       {sidebarOpen ? (
         <Sidebar
           aria-label="CodeThera sidebar"
@@ -84,26 +84,24 @@ export function AppLayout() {
         </Sidebar>
       ) : null}
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <Navbar
-          fluid
-          className="shrink-0 border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
-        >
-          <div className="flex w-full items-center justify-between">
-            <Button color="light" size="sm" onClick={toggleSidebar} aria-label="Toggle menu">
-              <MenuIcon />
+      {/* w-0 flex-1: force column to consume all remaining width (no centered max-width) */}
+      <div className="flex h-full w-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="flex w-full shrink-0 items-center justify-between border-b border-gray-200 bg-white px-4 py-2.5 dark:border-gray-700 dark:bg-gray-800">
+          <Button color="light" size="sm" onClick={toggleSidebar} aria-label="Toggle menu">
+            <MenuIcon />
+          </Button>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <UserAvatar fullName={user?.full_name} email={user?.email} />
+            <Button color="light" size="sm" onClick={clearSession}>
+              Sign out
             </Button>
-            <div className="flex items-center gap-3">
-              <ThemeToggle />
-              <UserAvatar fullName={user?.full_name} email={user?.email} />
-              <Button color="light" size="sm" onClick={clearSession}>
-                Sign out
-              </Button>
-            </div>
           </div>
-        </Navbar>
-        <main className="mx-auto w-full max-w-6xl flex-1 overflow-y-auto p-6">
-          <Outlet />
+        </header>
+        <main className="w-full max-w-none flex-1 overflow-y-auto p-6">
+          <div className="w-full max-w-none">
+            <Outlet />
+          </div>
         </main>
         <AppFooter />
       </div>

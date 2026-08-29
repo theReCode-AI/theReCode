@@ -91,7 +91,7 @@ export function ProjectDetailPage() {
   const runs = runsQuery.data ?? [];
 
   return (
-    <section>
+    <section className="w-full max-w-none">
       <PageHeader
         title={projectQuery.data.name}
         subtitle={projectQuery.data.description ?? "Project workspace"}
@@ -102,7 +102,7 @@ export function ProjectDetailPage() {
         }
       />
 
-      <Card className="mb-4">
+      <Card className="mb-4 w-full">
         <form onSubmit={handleRepositorySubmit}>
           <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Link repository</h2>
           <div className="mb-4 grid gap-4 sm:grid-cols-3">
@@ -143,14 +143,14 @@ export function ProjectDetailPage() {
         </form>
       </Card>
 
-      <Card className="mb-4">
+      <Card className="mb-4 w-full">
         <h2 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">Start run</h2>
         <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
           Select a linked repository, then create a run. Open the run and use{" "}
           <strong>Clone repository</strong> on the Overview tab to pull the code. Save your Git token
           under Settings first.
         </p>
-        <div className="mb-4 max-w-md">
+        <div className="mb-4 w-full sm:max-w-xl">
           <Label htmlFor="repository">Repository</Label>
           <Select
             id="repository"
@@ -174,7 +174,7 @@ export function ProjectDetailPage() {
         </Button>
       </Card>
 
-      <Card className="mb-4">
+      <Card className="mb-4 w-full">
         <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Linked repositories</h2>
         {repositories.length === 0 ? (
           <EmptyState message="No repositories linked yet." />
@@ -190,7 +190,7 @@ export function ProjectDetailPage() {
         )}
       </Card>
 
-      <Card>
+      <Card className="w-full">
         <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Runs</h2>
         {runs.length === 0 ? (
           <EmptyState message="No runs for this project yet." />
