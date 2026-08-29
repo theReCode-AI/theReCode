@@ -3,11 +3,9 @@ FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
 WORKDIR /app
 
 COPY pyproject.toml uv.lock README.md ./
-
 RUN uv sync --frozen --no-dev --group scanners
 
 COPY app ./app
-# app/.env is included via COPY app (required for Cloud Run settings)
 
 FROM python:3.12-slim-bookworm AS runtime
 
@@ -18,10 +16,7 @@ ARG GITLEAKS_VERSION=8.30.1
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        ca-certificates \
-        curl \
-        git \
+    && apt-get install -y --no-install-recommends ca-certificates curl git \
     && case "${TARGETARCH}" in \
         amd64) OSV_ARCH=amd64; GITLEAKS_ARCH=x64 ;; \
         arm64) OSV_ARCH=arm64; GITLEAKS_ARCH=arm64 ;; \
@@ -33,9 +28,7 @@ RUN apt-get update \
     && curl -fsSL \
         "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_${GITLEAKS_ARCH}.tar.gz" \
         | tar -xz -C /usr/local/bin gitleaks \
-    && chmod +x \
-        /usr/local/bin/osv-scanner \
-        /usr/local/bin/gitleaks \
+    && chmod +x /usr/local/bin/osv-scanner /usr/local/bin/gitleaks \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --system codethera \
     && useradd --system --gid codethera codethera \
@@ -43,17 +36,18 @@ RUN apt-get update \
     && chown -R codethera:codethera /workspace
 
 COPY --from=builder /app /app
-RUN chown -R codethera:codethera /app /workspace
+COPY .env ./.env
+RUN chown codethera:codethera ./.env
 
 ENV PATH="/app/.venv/bin:/usr/local/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 ENV CODETHERA_WORKSPACE_ROOT=/workspace
-ENV CODETHERA_HOST=0.0.0.0
-ENV CODETHERA_PORT=8000
 
 USER codethera
 
 EXPOSE 8000
 
-# Cloud Run injects PORT; bind 0.0.0.0 so the platform health check succeeds.
-CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/ready')"
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

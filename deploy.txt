@@ -1,0 +1,33 @@
+gcloud artifacts repositories create harpic-cursor-v1  --repository-format=docker --location=europe-north1 --description="FAST API APP TEST" --immutable-tags --async
+
+# ---------- Backend ----------
+# Build context must be ./backend so Dockerfile copies backend/app/.env via COPY app
+gcloud builds submit ./backend \
+  --config=./backend/cloudbuild.yaml \
+  --substitutions=_IMAGE=europe-north1-docker.pkg.dev/todo-app-506706/harpic-cursor-v1/harpic-cursor-v1-img:v1tag
+
+# Cloud Run: localhost MongoDB in app/.env will NOT work.
+# 1) Use MongoDB Atlas (mongodb+srv://...)
+# 2) Atlas → Network Access → Add IP Address → Allow Access from Anywhere (0.0.0.0/0)
+#    Cloud Run egress IPs are dynamic; without this you get TLS handshake errors.
+# 3) Set env on deploy:
+#
+# gcloud run services update harpic-cursor-v1 \
+#   --region europe-north1 \
+#   --set-env-vars "CODETHERA_MONGODB_URI=mongodb+srv://USER:PASS@CLUSTER/codethera?retryWrites=true&w=majority,CODETHERA_WORKSPACE_ROOT=/workspace,CODETHERA_ENVIRONMENT=production"
+
+# ---------- Frontend (Cloud Run) ----------
+# Image is static nginx only (no proxy to "backend" hostname — that crashes nginx on Cloud Run).
+# Bake the backend URL into the SPA at build time.
+#
+# gcloud builds submit ./frontend \
+#   --config=./frontend/cloudbuild.yaml \
+#   --substitutions=_IMAGE=europe-west1-docker.pkg.dev/todo-app-506706/harpic-cursor-v1/harpic-frontend:v1,_VITE_API_BASE_URL=https://harpic-cursor-v1-img-349908796899.europe-west1.run.app/api/v1
+#
+# gcloud run deploy harpic-frontend \
+#   --image europe-west1-docker.pkg.dev/todo-app-506706/harpic-cursor-v1/harpic-frontend:v1 \
+#   --region europe-west1 \
+#   --port 8080 \
+#   --allow-unauthenticated
+#
+# Container port MUST be 8080 (matches nginx $PORT). Do not set frontend port to 8000.

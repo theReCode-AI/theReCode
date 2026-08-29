@@ -145,7 +145,7 @@ npm run build
 ### Phase 31 Google ADK 2.0
 
 - Package: `google-adk>=2.8` in `backend/pyproject.toml`
-- Config in `backend/.env`:
+- Config in `backend/app/.env`:
   - `CODETHERA_GOOGLE_API_KEY` — Gemini API key from [AI Studio](https://aistudio.google.com/apikey)
   - `CODETHERA_GOOGLE_GENAI_USE_VERTEXAI=false`
   - `CODETHERA_GEMINI_MODEL=gemini-2.5-flash`
@@ -159,7 +159,7 @@ npm run build
 |---------|-------|------|-------|
 | `mongodb` | `mongo:7` | 27017 | Persistent volume |
 | `backend` | `backend/Dockerfile` | 8000 | git + curl, `/workspace` mount |
-| `frontend` | `frontend/Dockerfile` | 5173→80 | nginx proxies `/api` to backend |
+| `frontend` | `frontend/Dockerfile` | 5173→8080 | Cloud Run: static SPA on `$PORT`; bake `VITE_API_BASE_URL` to backend. Compose: nginx proxies `/api` → backend |
 
 Files: `.env.docker.example`, `scripts/validate-docker.sh`, `.dockerignore` per service
 

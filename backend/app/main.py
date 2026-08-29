@@ -8,7 +8,7 @@ from app import __version__
 from app.api.router import api_router
 from app.core.config import settings
 from app.core.logging import configure_logging, get_logger
-from app.db.init_db import initialize_database, shutdown_database
+from app.db.init_db import shutdown_database
 from app.db.mongodb import mongodb_manager
 from app.google_adk.bootstrap import bootstrap_google_genai
 
@@ -28,7 +28,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             "stage": "startup",
         },
     )
-    initialize_database(mongodb_manager)
+    # Do not block Cloud Run PORT bind on MongoDB — connect lazily on first request.
     try:
         yield
     finally:
@@ -48,8 +48,8 @@ def create_app() -> FastAPI:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.cors_origins,
-        allow_credentials=True,
+        allow_origins=["*"],
+        allow_credentials=False,
         allow_methods=["*"],
         allow_headers=["*"],
     )

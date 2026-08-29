@@ -9,6 +9,16 @@ from app.db.indexes import INDEX_DEFINITIONS
 logger = get_logger(__name__)
 
 
+def _tls_ca_file() -> str | None:
+    """Use certifi CA bundle for Atlas / TLS connections when available."""
+    try:
+        import certifi
+
+        return certifi.where()
+    except ImportError:
+        return None
+
+
 class MongoDBManager:
     """Manage the PyMongo client lifecycle and database access."""
 
@@ -24,12 +34,22 @@ class MongoDBManager:
         if self._client is not None:
             return
 
-        self._client = MongoClient(
-            self._settings.mongodb_uri,
-            serverSelectionTimeoutMS=self._settings.mongodb_server_selection_timeout_ms,
-            connectTimeoutMS=self._settings.mongodb_connect_timeout_ms,
-        )
-        self._client.admin.command("ping")
+        client_kwargs: dict[str, object] = {
+            "serverSelectionTimeoutMS": self._settings.mongodb_server_selection_timeout_ms,
+            "connectTimeoutMS": self._settings.mongodb_connect_timeout_ms,
+        }
+        ca_file = _tls_ca_file()
+        if ca_file is not None and self._settings.mongodb_uri.startswith("mongodb+srv"):
+            client_kwargs["tlsCAFile"] = ca_file
+
+        client = MongoClient(self._settings.mongodb_uri, **client_kwargs)
+        try:
+            client.admin.command("ping")
+        except Exception:
+            client.close()
+            raise
+
+        self._client = client
         logger.info(
             "Connected to MongoDB",
             extra={
@@ -37,6 +57,12 @@ class MongoDBManager:
                 "stage": "mongodb_connect",
             },
         )
+
+    def ensure_connected(self) -> None:
+        """Connect if needed (used by request-scoped DB access)."""
+        if self._client is None:
+            self.connect()
+            self.ensure_indexes()
 
     def disconnect(self) -> None:
         if self._client is None:

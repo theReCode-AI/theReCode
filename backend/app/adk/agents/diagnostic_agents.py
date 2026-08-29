@@ -59,11 +59,18 @@ class CodeQualityAgent(DiagnosticAgent):
         return (ScannerTool.RUFF,)
 
 
+class SemgrepAgent(DiagnosticAgent):
+    name = DiagnosticAgentName.SEMGREP
+
+    def scanner_tools(self) -> tuple[ScannerTool, ...]:
+        return (ScannerTool.SEMGREP,)
+
+
 class SecurityAgent(DiagnosticAgent):
     name = DiagnosticAgentName.SECURITY
 
     def scanner_tools(self) -> tuple[ScannerTool, ...]:
-        return (ScannerTool.SEMGREP, ScannerTool.BANDIT)
+        return (ScannerTool.BANDIT,)
 
 
 class DependencyAgent(DiagnosticAgent):
@@ -96,6 +103,7 @@ class CoverageAgent(DiagnosticAgent):
 
 DEFAULT_DIAGNOSTIC_AGENTS: tuple[DiagnosticAgent, ...] = (
     CodeQualityAgent(),
+    SemgrepAgent(),
     SecurityAgent(),
     DependencyAgent(),
     SecretCheckAgent(),

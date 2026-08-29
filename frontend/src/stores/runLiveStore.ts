@@ -32,12 +32,17 @@ interface RunLiveStoreState {
   resetRun: (runId: string) => void;
 }
 
-const emptySlice = (): RunLiveSlice => ({
+const EMPTY_RUN_LIVE_SLICE: RunLiveSlice = {
   connectionStatus: "idle",
   run: null,
   state: null,
   events: [],
   error: null,
+};
+
+const emptySlice = (): RunLiveSlice => ({
+  ...EMPTY_RUN_LIVE_SLICE,
+  events: [],
 });
 
 export const useRunLiveStore = create<RunLiveStoreState>((set) => ({
@@ -127,5 +132,5 @@ export const useRunLiveStore = create<RunLiveStoreState>((set) => ({
 }));
 
 export function useRunLiveSlice(runId: string): RunLiveSlice {
-  return useRunLiveStore((state) => state.runs[runId] ?? emptySlice());
+  return useRunLiveStore((state) => state.runs[runId] ?? EMPTY_RUN_LIVE_SLICE);
 }

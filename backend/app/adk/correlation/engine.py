@@ -269,7 +269,11 @@ class FindingCorrelator:
         files = {finding.file for finding in findings if finding.file}
 
         if len(tools) > 1 and agents.intersection(
-            {DiagnosticAgentName.SECURITY, DiagnosticAgentName.SECRET_CHECK},
+            {
+                DiagnosticAgentName.SEMGREP,
+                DiagnosticAgentName.SECURITY,
+                DiagnosticAgentName.SECRET_CHECK,
+            },
         ):
             file_label = next(iter(files)) if len(files) == 1 else "shared locations"
             return (

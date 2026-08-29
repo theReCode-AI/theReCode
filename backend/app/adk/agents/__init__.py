@@ -8,6 +8,7 @@ from app.adk.agents.diagnostic_agents import (
     DiagnosticAgentName,
     SecretCheckAgent,
     SecurityAgent,
+    SemgrepAgent,
     TestAgent,
     get_diagnostic_agents,
 )
@@ -22,6 +23,7 @@ __all__ = [
     "DiagnosticAgentName",
     "SecretCheckAgent",
     "SecurityAgent",
+    "SemgrepAgent",
     "TestAgent",
     "get_diagnostic_agents",
 ]

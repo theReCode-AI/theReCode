@@ -13,12 +13,12 @@ RUN npm run build
 
 FROM nginx:alpine AS runtime
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Cloud Run sets PORT (often 8080; use whatever is injected).
+ENV PORT=8080
+
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-EXPOSE 80
-
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget -qO- http://127.0.0.1/ > /dev/null || exit 1
+EXPOSE 8080
 
 CMD ["nginx", "-g", "daemon off;"]

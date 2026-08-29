@@ -17,7 +17,7 @@ def ensure_google_adk_configured(settings: Settings) -> None:
     if not api_key:
         raise GoogleAdkConfigurationError(
             "Gemini API key is required. Set CODETHERA_GOOGLE_API_KEY or GOOGLE_API_KEY "
-            "in backend/.env (get a key from https://aistudio.google.com/apikey).",
+            "in backend/app/.env (get a key from https://aistudio.google.com/apikey).",
         )
 
 

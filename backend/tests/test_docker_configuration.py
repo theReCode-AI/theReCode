@@ -11,16 +11,34 @@ def test_docker_compose_defines_core_services() -> None:
 
 def test_backend_dockerfile_has_healthcheck_and_git() -> None:
     dockerfile = (REPO_ROOT / "backend" / "Dockerfile").read_text(encoding="utf-8")
-    assert "HEALTHCHECK" in dockerfile
     assert "git" in dockerfile
     assert "CODETHERA_WORKSPACE_ROOT=/workspace" in dockerfile
-    assert "urllib.request" in dockerfile
+    assert "--group scanners" in dockerfile
+    assert "README.md" in dockerfile
+    assert "COPY app ./app" in dockerfile
+    assert "osv-scanner_linux_" in dockerfile
+    assert "gitleaks_" in dockerfile
 
 
 def test_frontend_nginx_supports_sse_proxy() -> None:
-    nginx = (REPO_ROOT / "frontend" / "nginx.conf").read_text(encoding="utf-8")
-    assert "proxy_buffering off" in nginx
-    assert "proxy_pass http://backend:8000" in nginx
+    compose_nginx = (REPO_ROOT / "frontend" / "nginx.compose.conf.template").read_text(
+        encoding="utf-8"
+    )
+    cloud_nginx = (REPO_ROOT / "frontend" / "nginx.conf.template").read_text(encoding="utf-8")
+    assert "proxy_buffering off" in compose_nginx
+    assert "proxy_pass http://backend:8000" in compose_nginx
+    assert "listen ${PORT}" in cloud_nginx
+    assert "proxy_pass" not in cloud_nginx
+
+
+def test_frontend_dockerfile_listens_on_cloud_run_port() -> None:
+    dockerfile = (REPO_ROOT / "frontend" / "Dockerfile").read_text(encoding="utf-8")
+    assert "ENV PORT=8080" in dockerfile
+    assert "nginx.conf.template" in dockerfile
+    assert "EXPOSE 8080" in dockerfile
+    assert "API_UPSTREAM" not in dockerfile
+    cloud_nginx = (REPO_ROOT / "frontend" / "nginx.conf.template").read_text(encoding="utf-8")
+    assert "backend:8000" not in cloud_nginx
 
 
 def test_docker_env_example_uses_internal_mongodb_uri() -> None:

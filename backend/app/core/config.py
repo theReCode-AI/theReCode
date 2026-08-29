@@ -4,12 +4,15 @@ from typing import Literal
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# backend/app/.env (same folder as the app package)
+_APP_ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
+
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=_APP_ENV_FILE,
         env_file_encoding="utf-8",
         env_prefix="CODETHERA_",
         extra="ignore",
@@ -20,7 +23,7 @@ class Settings(BaseSettings):
     api_prefix: str = "/api/v1"
     host: str = "0.0.0.0"
     port: int = 8000
-    cors_origins: list[str] = Field(default=["http://localhost:5173"])
+    cors_origins: list[str] = Field(default=["*"])
     workspace_root: Path = Path("../workspace")
     log_level: str = "INFO"
     log_format: Literal["json", "text"] = "text"
@@ -38,7 +41,7 @@ class Settings(BaseSettings):
     max_fix_iterations: int = 3
     google_api_key: str = ""
     google_genai_use_vertexai: bool = False
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = "gemini-3.6-flash"
     google_adk_app_name: str = "codethera"
 
     @field_validator("cors_origins", mode="before")

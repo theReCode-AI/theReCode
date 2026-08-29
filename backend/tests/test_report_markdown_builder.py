@@ -5,6 +5,7 @@ from bson import ObjectId
 from app.adk.reporting.markdown_builder import (
     MarkdownReportBuilder,
     ReportGenerationContext,
+    _findings_section,
     compute_final_health_score,
 )
 from app.models.finding import Finding
@@ -128,3 +129,31 @@ def test_markdown_builder_includes_git_results() -> None:
     assert "https://github.com/org/repo/pull/1" in content.markdown
     assert "agent/run-security" in content.markdown
     assert content.final_health_score == 85.0
+
+
+def test_findings_section_uses_file_name_only() -> None:
+    now = datetime.now(UTC)
+    findings = [
+        Finding(
+            finding_id=str(ObjectId()),
+            run_id="run-1",
+            agent=DiagnosticAgentName.SECURITY,
+            tool="ruff",
+            category="import",
+            severity=FindingSeverity.LOW,
+            confidence=0.9,
+            file="/home/user/workspace/runs/abc/repository/kimi_test.py",
+            line_start=1,
+            line_end=1,
+            message="Import",
+            evidence="import",
+            fixability=FindingFixability.AGENT,
+            status=FindingStatus.OPEN,
+            created_at=now,
+        ),
+    ]
+
+    section = _findings_section(findings)
+
+    assert "[low] kimi_test.py:1 Import" in section
+    assert "/home/user/workspace" not in section

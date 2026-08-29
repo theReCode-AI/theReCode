@@ -3,6 +3,7 @@ from enum import StrEnum
 
 class DiagnosticAgentName(StrEnum):
     CODE_QUALITY = "code_quality_agent"
+    SEMGREP = "semgrep_agent"
     SECURITY = "security_agent"
     DEPENDENCY = "dependency_agent"
     SECRET_CHECK = "secret_check_agent"

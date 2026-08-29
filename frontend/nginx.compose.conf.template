@@ -1,6 +1,6 @@
 server {
-    listen 80;
-    server_name localhost;
+    listen ${PORT} default_server;
+    server_name _;
     root /usr/share/nginx/html;
     index index.html;
 
@@ -19,7 +19,6 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Connection "";
 
-        # SSE live progress streams
         proxy_buffering off;
         proxy_cache off;
         proxy_read_timeout 3600s;

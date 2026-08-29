@@ -48,7 +48,7 @@ def _finding(
 def test_correlator_groups_cross_tool_security_findings() -> None:
     correlator = FindingCorrelator()
     findings = [
-        _finding(tool="semgrep", agent=DiagnosticAgentName.SECURITY),
+        _finding(tool="semgrep", agent=DiagnosticAgentName.SEMGREP),
         _finding(
             tool="bandit",
             agent=DiagnosticAgentName.SECURITY,

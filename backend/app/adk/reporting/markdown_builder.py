@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from pathlib import Path
 
 from app.models.approval import HumanApproval
 from app.models.finding import Finding
@@ -194,7 +195,7 @@ def _findings_section(findings: list[Finding]) -> str:
     if not findings:
         return "## Findings\n\nNo findings were recorded."
     lines = [
-        f"- [{finding.severity.value}] {finding.file}:{finding.line_start} "
+        f"- [{finding.severity.value}] {_format_file_location(finding.file, finding.line_start)} "
         f"{finding.message} ({finding.tool})"
         for finding in findings[:25]
     ]
@@ -223,7 +224,7 @@ def _code_changes_section(fix_attempts: list[FixAttempt]) -> str:
         return "## Code Changes\n\nNo fix attempts were recorded."
     lines = []
     for attempt in fix_attempts[:20]:
-        changed = ", ".join(attempt.changed_files) or "none"
+        changed = ", ".join(_format_file_location(file) for file in attempt.changed_files) or "none"
         lines.append(f"- Attempt {attempt.attempt_number} ({attempt.status.value}): {changed}")
     return "## Code Changes\n\n" + "\n".join(lines)
 
@@ -265,7 +266,7 @@ def _regression_section(results: list[RegressionTestResult]) -> str:
         return "## Regression Tests\n\nNo regression test results were recorded."
     lines = [
         f"- {result.patch_plan_id}: {result.status.value}"
-        + (f" ({result.test_file_path})" if result.test_file_path else "")
+        + (f" ({_format_file_location(result.test_file_path)})" if result.test_file_path else "")
         for result in results[:20]
     ]
     return "## Regression Tests\n\n" + "\n".join(lines)
@@ -349,3 +350,13 @@ def _latest_git_operation(git_operations: list[GitOperation]) -> GitOperation | 
 
 def _format_datetime(value: datetime) -> str:
     return value.isoformat()
+
+
+def _format_file_location(file: str | None, line_start: int | None = None) -> str:
+    if not file:
+        return "unknown"
+
+    file_name = Path(file.replace("\\", "/")).name
+    if line_start is not None:
+        return f"{file_name}:{line_start}"
+    return file_name

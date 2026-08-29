@@ -42,6 +42,20 @@ def test_initialize_database_connects_and_indexes(
     assert indexes_called is True
 
 
+def test_initialize_database_survives_connection_failure(
+    isolated_manager: MongoDBManager,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def mock_connect(self: MongoDBManager) -> None:
+        raise ConnectionError("mongodb unreachable")
+
+    monkeypatch.setattr(MongoDBManager, "connect", mock_connect)
+
+    initialize_database(isolated_manager)
+
+    assert isolated_manager.is_connected is False
+
+
 def test_shutdown_database_disconnects(
     isolated_manager: MongoDBManager,
     monkeypatch: pytest.MonkeyPatch,

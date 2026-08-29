@@ -10,5 +10,6 @@ dist/
 build/
 tests/
 
-# Keep backend/app/.env in the Docker build context.
-# (Do not ignore .env or app/.env here.)
+# Include backend/app/.env in Cloud Build uploads (root .gitignore excludes .env).
+!.env
+!app/.env

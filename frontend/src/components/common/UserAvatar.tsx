@@ -21,7 +21,7 @@ function buildAvatarUrl(
   }
 
   const seed = encodeURIComponent(email ?? fullName ?? "admin");
-  return `https://api.dicebear.com/7.x/avataaars/png?seed=${seed}&size=40`;
+  return `https://api.dicebear.com/7.x/avataaars/png?seed=${seed}&size=50`;
 }
 
 export function UserAvatar({

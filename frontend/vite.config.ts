@@ -15,7 +15,8 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": {
-        target: "http://localhost:8080",
+        // target: "http://localhost:8080",
+        target: "https://harpic-cursor-v1-img-349908796899.europe-west1.run.app",
         changeOrigin: true,
       },
     },
