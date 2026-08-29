@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Badge, Button, Card } from "flowbite-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
 
@@ -110,18 +111,13 @@ export function RunApprovalsPage() {
   }
 
   return (
-    <section className="panel approvals-page">
-      <div className="panel-header">
-        <h2>Human approvals</h2>
+    <Card>
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <h2 className="text-lg font-semibold text-gray-900">Human approvals</h2>
         {showPrepareButton ? (
-          <button
-            type="button"
-            className="primary-button"
-            disabled={prepareMutation.isPending}
-            onClick={() => prepareMutation.mutate()}
-          >
+          <Button disabled={prepareMutation.isPending} onClick={() => prepareMutation.mutate()}>
             {prepareMutation.isPending ? "Preparing..." : "Prepare approval cards"}
-          </button>
+          </Button>
         ) : null}
       </div>
 
@@ -130,7 +126,7 @@ export function RunApprovalsPage() {
       ) : null}
 
       {pendingCount > 0 ? (
-        <p className="page-subtitle">
+        <p className="mb-4 text-sm text-gray-500">
           {pendingCount} approval{pendingCount === 1 ? "" : "s"} waiting for your decision. The
           pipeline will stay paused until you approve.
         </p>
@@ -145,63 +141,67 @@ export function RunApprovalsPage() {
           }
         />
       ) : (
-        <div className="approvals-layout">
-          <aside className="approvals-sidebar">
+        <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
+          <aside className="flex flex-col gap-2">
             {approvals.map((approval) => (
               <button
                 key={approval.approval_id}
                 type="button"
-                className={
+                className={`rounded-xl border p-3 text-left transition ${
                   approval.approval_id === selectedApprovalId
-                    ? "approval-option active"
-                    : "approval-option"
-                }
+                    ? "border-blue-600 bg-blue-50"
+                    : "border-gray-200 bg-gray-50 hover:border-gray-300"
+                }`}
                 onClick={() => setSelectedApprovalId(approval.approval_id)}
               >
-                <strong>{approval.trigger}</strong>
-                <span className="status-badge">{approval.status}</span>
-                <small>{formatDateTime(approval.created_at)}</small>
+                <strong className="block text-gray-900">{approval.trigger}</strong>
+                <Badge color="gray" className="mt-1">{approval.status}</Badge>
+                <small className="mt-1 block text-xs text-gray-500">
+                  {formatDateTime(approval.created_at)}
+                </small>
               </button>
             ))}
           </aside>
 
           {selectedApproval ? (
-            <article className="approval-detail">
-              <header className="approval-card-header">
+            <article className="space-y-4">
+              <header className="flex items-start justify-between gap-4">
                 <div>
-                  <h3>{selectedApproval.issue_title ?? selectedApproval.trigger}</h3>
-                  <p>{selectedApproval.reason}</p>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {selectedApproval.issue_title ?? selectedApproval.trigger}
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-600">{selectedApproval.reason}</p>
                 </div>
-                <span className="status-badge">{selectedApproval.status}</span>
+                <Badge color="gray">{selectedApproval.status}</Badge>
               </header>
 
               {selectedApproval.root_cause ? (
-                <p>
+                <p className="text-sm text-gray-700">
                   <strong>Root cause:</strong> {selectedApproval.root_cause}
                 </p>
               ) : null}
               {selectedApproval.risk_level ? (
-                <p>
+                <p className="text-sm text-gray-700">
                   <strong>Risk:</strong> {selectedApproval.risk_level}
                 </p>
               ) : null}
               {selectedApproval.evidence_summary ? (
-                <p>
+                <p className="text-sm text-gray-700">
                   <strong>Evidence:</strong> {selectedApproval.evidence_summary}
                 </p>
               ) : null}
               {selectedApproval.verification_summary ? (
-                <p>
+                <p className="text-sm text-gray-700">
                   <strong>Verification:</strong> {selectedApproval.verification_summary}
                 </p>
               ) : null}
               {selectedApproval.expected_tests.length > 0 ? (
-                <p>
+                <p className="text-sm text-gray-700">
                   <strong>Expected tests:</strong> {selectedApproval.expected_tests.join(", ")}
                 </p>
               ) : null}
               {selectedApproval.reviewer_feedback.length > 0 ? (
-                <ul className="simple-list">
+                <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700">
                   {selectedApproval.reviewer_feedback.map((feedback) => (
                     <li key={feedback}>{feedback}</li>
                   ))}
@@ -209,10 +209,10 @@ export function RunApprovalsPage() {
               ) : null}
 
               {selectedApproval.diff_artifact_path ? (
-                <div className="approval-diff-section">
-                  <div className="panel-header">
-                    <h4>Patch diff</h4>
-                    <Link to="../diff" className="text-link">
+                <div>
+                  <div className="mb-3 flex items-center justify-between">
+                    <h4 className="font-semibold text-gray-900">Patch diff</h4>
+                    <Link to="../diff" className="text-sm font-medium text-blue-600 hover:underline">
                       Open full diff viewer
                     </Link>
                   </div>
@@ -230,7 +230,7 @@ export function RunApprovalsPage() {
                   onSubmit={handleDecision}
                 />
               ) : (
-                <p className="page-subtitle">
+                <p className="text-sm text-gray-500">
                   Decision: {selectedApproval.human_decision}
                   {selectedApproval.human_feedback
                     ? ` — ${selectedApproval.human_feedback}`
@@ -241,6 +241,6 @@ export function RunApprovalsPage() {
           ) : null}
         </div>
       )}
-    </section>
+    </Card>
   );
 }

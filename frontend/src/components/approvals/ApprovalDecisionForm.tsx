@@ -1,3 +1,4 @@
+import { Alert, Button, Label, Textarea } from "flowbite-react";
 import { useState } from "react";
 
 import { ApiError } from "@/api/client";
@@ -31,42 +32,42 @@ export function ApprovalDecisionForm({ disabled = false, onSubmit }: ApprovalDec
   }
 
   return (
-    <div className="approval-decision-form" data-testid="approval-decision-form">
-      <label>
-        Feedback
-        <textarea
+    <div data-testid="approval-decision-form">
+      <div className="mb-4">
+        <Label htmlFor="approvalFeedback">Feedback</Label>
+        <Textarea
+          id="approvalFeedback"
           value={feedback}
           onChange={(event) => setFeedback(event.target.value)}
           placeholder="Optional for approve/reject. Required for request changes."
           rows={4}
         />
-      </label>
-      {error ? <p className="form-error">{error}</p> : null}
-      <div className="approval-actions">
-        <button
+      </div>
+      {error ? <Alert color="failure" className="mb-4">{error}</Alert> : null}
+      <div className="flex flex-wrap gap-3">
+        <Button
           type="button"
-          className="primary-button"
           disabled={disabled || isSubmitting}
           onClick={() => handleDecision("approve")}
         >
           Approve
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="ghost-button"
+          color="light"
           disabled={disabled || isSubmitting}
           onClick={() => handleDecision("reject")}
         >
           Reject
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="ghost-button"
+          color="light"
           disabled={disabled || isSubmitting}
           onClick={() => handleDecision("request_changes")}
         >
           Request changes
-        </button>
+        </Button>
       </div>
     </div>
   );

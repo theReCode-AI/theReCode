@@ -1,3 +1,5 @@
+import { Badge } from "flowbite-react";
+
 import type { RunStreamConnectionStatus } from "@/stores/runLiveStore";
 
 const LABELS: Record<RunStreamConnectionStatus, string> = {
@@ -8,14 +10,22 @@ const LABELS: Record<RunStreamConnectionStatus, string> = {
   error: "Reconnecting soon",
 };
 
+const STATUS_COLOR: Record<RunStreamConnectionStatus, "success" | "info" | "gray" | "failure"> = {
+  idle: "gray",
+  connecting: "info",
+  open: "success",
+  closed: "gray",
+  error: "failure",
+};
+
 interface LiveConnectionBadgeProps {
   status: RunStreamConnectionStatus;
 }
 
 export function LiveConnectionBadge({ status }: LiveConnectionBadgeProps) {
   return (
-    <span className={`live-badge live-${status}`} data-testid="live-connection-badge">
+    <Badge color={STATUS_COLOR[status]} data-testid="live-connection-badge">
       {LABELS[status]}
-    </span>
+    </Badge>
   );
 }

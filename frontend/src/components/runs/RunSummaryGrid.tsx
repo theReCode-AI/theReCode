@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Card } from "flowbite-react";
 
 interface SummaryCardProps {
   label: string;
@@ -10,22 +11,22 @@ interface SummaryCardProps {
 export function SummaryCard({ label, value, hint, link }: SummaryCardProps) {
   const content = (
     <>
-      <span className="summary-label">{label}</span>
-      <strong className="summary-value">{value}</strong>
-      {hint ? <span className="summary-hint">{hint}</span> : null}
+      <p className="text-sm text-gray-500">{label}</p>
+      <p className="text-2xl font-bold text-gray-900">{value}</p>
+      {hint ? <p className="text-sm text-gray-500">{hint}</p> : null}
     </>
   );
 
   return (
-    <article className="summary-card">
+    <Card>
       {link ? (
-        <Link to={link} className="summary-card-link">
+        <Link to={link} className="block text-inherit no-underline hover:text-blue-600">
           {content}
         </Link>
       ) : (
         content
       )}
-    </article>
+    </Card>
   );
 }
 
@@ -35,7 +36,7 @@ interface RunSummaryGridProps {
 
 export function RunSummaryGrid({ items }: RunSummaryGridProps) {
   return (
-    <div className="summary-grid" data-testid="run-summary-grid">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-testid="run-summary-grid">
       {items.map((item) => (
         <SummaryCard key={item.label} {...item} />
       ))}

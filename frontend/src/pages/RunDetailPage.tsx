@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, NavLink, Outlet, useParams } from "react-router-dom";
+import { Alert, Badge, Card } from "flowbite-react";
+import { Link, Outlet, useParams } from "react-router-dom";
 
 import {
   getApprovals,
@@ -18,6 +19,7 @@ import { PageHeader } from "@/components/common/PageHeader";
 import { LiveConnectionBadge } from "@/components/runs/LiveConnectionBadge";
 import { PipelineGraph } from "@/components/runs/PipelineGraph";
 import { RunStatusBadge } from "@/components/runs/RunStatusBadge";
+import { RunTabGroup } from "@/components/runs/RunTabGroup";
 import { useRunProgressStream } from "@/hooks/useRunProgressStream";
 import { useAuthStore } from "@/stores/authStore";
 import { useRunLiveSlice } from "@/stores/runLiveStore";
@@ -39,14 +41,6 @@ import {
 } from "@/utils/approvals";
 import { formatDateTime } from "@/utils/runStages";
 import { getActiveGraphNodeLabel, getGraphProgressPercent } from "@/utils/pipelineGraph";
-
-const RUN_TABS = [
-  { to: "", label: "Overview", end: true },
-  { to: "findings", label: "Findings" },
-  { to: "diff", label: "Diff" },
-  { to: "approvals", label: "Approvals" },
-  { to: "reports", label: "Reports" },
-];
 
 export interface RunOutletContext {
   run: Run;
@@ -168,7 +162,7 @@ export function RunDetailPage() {
     riskDecisions,
     peerReviews: peerReviewsQuery.data ?? [],
     gitOps: gitOpsQuery.data ?? [],
-    report: reportQuery.data,
+    report: reportQuery.data ?? undefined,
     events,
     connectionStatus: liveSlice.connectionStatus,
     approvalRequired,
@@ -180,21 +174,21 @@ export function RunDetailPage() {
         title={`Run ${run.id.slice(-8)}`}
         subtitle={`Project ${run.project_id} · Updated ${formatDateTime(run.updated_at)}`}
         actions={
-          <div className="page-actions">
+          <div className="flex items-center gap-3">
             <LiveConnectionBadge status={liveSlice.connectionStatus} />
-            <Link to={`/projects/${run.project_id}`} className="text-link">
+            <Link to={`/projects/${run.project_id}`} className="text-sm font-medium text-blue-600 hover:underline">
               Back to project
             </Link>
           </div>
         }
       />
 
-      {liveSlice.error ? <p className="form-error">{liveSlice.error}</p> : null}
+      {liveSlice.error ? <Alert color="failure" className="mb-4">{liveSlice.error}</Alert> : null}
 
-      <div className="run-hero panel">
-        <div className="run-hero-top">
+      <Card className="mb-4">
+        <div className="mb-4 flex items-center justify-between">
           <RunStatusBadge status={run.status} />
-          <span className="progress-pill">{graphProgress}% complete</span>
+          <Badge color="info">{graphProgress}% complete</Badge>
         </div>
         <PipelineGraph
           status={run.status}
@@ -202,32 +196,20 @@ export function RunDetailPage() {
           completedStages={state?.completed_stages}
         />
         {state || approvalRequired || activeGraphLabel ? (
-          <p className="run-meta">
+          <p className="mt-4 text-sm text-gray-500">
             {activeGraphLabel ? `Stage: ${activeGraphLabel}` : null}
             {state?.current_agent ? ` · Agent: ${state.current_agent}` : ""}
             {approvalRequired ? " · Approval required" : ""}
             {state && state.progress > 0 ? ` · Progress: ${state.progress}%` : ""}
           </p>
         ) : null}
-      </div>
+      </Card>
 
-      <nav className="run-tabs">
-        {RUN_TABS.map((tab) => (
-          <NavLink
-            key={tab.to}
-            to={tab.to}
-            end={tab.end}
-            className={({ isActive }) => (isActive ? "run-tab active" : "run-tab")}
-          >
-            {tab.label}
-            {tab.to === "approvals" && (pendingApprovalCount > 0 || approvalRequired) ? (
-              <span className="tab-badge">
-                {pendingApprovalCount > 0 ? pendingApprovalCount : "!"}
-              </span>
-            ) : null}
-          </NavLink>
-        ))}
-      </nav>
+      <RunTabGroup
+        runId={run.id}
+        pendingApprovalCount={pendingApprovalCount}
+        approvalRequired={approvalRequired}
+      />
 
       <Outlet context={outletContext} />
     </section>

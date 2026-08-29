@@ -1,51 +1,50 @@
+import { Card, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow } from "flowbite-react";
 import { useOutletContext } from "react-router-dom";
 
 import { EmptyState } from "@/components/common/EmptyState";
+import { SeverityBadge } from "@/components/runs/SeverityBadge";
 import type { RunOutletContext } from "@/pages/RunDetailPage";
+import { formatFindingLocation } from "@/utils/findingLocation";
 import { formatDateTime } from "@/utils/runStages";
 
 export function RunFindingsPage() {
   const { findings } = useOutletContext<RunOutletContext>();
 
   return (
-    <section className="panel">
-      <h2>Findings</h2>
+    <Card>
+      <h2 className="mb-4 text-lg font-semibold text-gray-900">Findings</h2>
       {findings.length === 0 ? (
         <EmptyState message="No findings available for this run." />
       ) : (
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Severity</th>
-                <th>Agent</th>
-                <th>Location</th>
-                <th>Message</th>
-                <th>Created</th>
-              </tr>
-            </thead>
-            <tbody>
+        <div className="overflow-x-auto">
+          <Table hoverable>
+            <TableHead>
+              <TableRow>
+                <TableHeadCell>Severity</TableHeadCell>
+                <TableHeadCell>Agent</TableHeadCell>
+                <TableHeadCell>Location</TableHeadCell>
+                <TableHeadCell>Message</TableHeadCell>
+                <TableHeadCell>Created</TableHeadCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
               {findings.map((finding) => (
-                <tr key={finding.finding_id}>
-                  <td>
-                    <span className={`severity-badge severity-${finding.severity}`}>
-                      {finding.severity}
-                    </span>
-                  </td>
-                  <td>{finding.agent}</td>
-                  <td>
-                    {finding.file
-                      ? `${finding.file}${finding.line_start ? `:${finding.line_start}` : ""}`
-                      : "—"}
-                  </td>
-                  <td>{finding.message}</td>
-                  <td>{formatDateTime(finding.created_at)}</td>
-                </tr>
+                <TableRow key={finding.finding_id}>
+                  <TableCell>
+                    <SeverityBadge severity={finding.severity} />
+                  </TableCell>
+                  <TableCell>{finding.agent}</TableCell>
+                  <TableCell>
+                    {formatFindingLocation(finding.file, finding.line_start)}
+                  </TableCell>
+                  <TableCell>{finding.message}</TableCell>
+                  <TableCell>{formatDateTime(finding.created_at)}</TableCell>
+                </TableRow>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
-    </section>
+    </Card>
   );
 }

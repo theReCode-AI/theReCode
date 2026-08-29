@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button, Card, Label, TextInput } from "flowbite-react";
 import { FormEvent, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -52,42 +53,56 @@ export function ProjectsPage() {
     <section>
       <PageHeader title="Projects" subtitle="Organize repositories and autonomous runs." />
 
-      <form className="panel form-panel" onSubmit={handleSubmit}>
-        <h2>Create project</h2>
-        <div className="form-grid">
-          <label>
-            Name
-            <input value={name} onChange={(event) => setName(event.target.value)} required />
-          </label>
-          <label>
-            Description
-            <input
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-            />
-          </label>
-        </div>
-        <button type="submit" className="primary-button" disabled={createMutation.isPending}>
-          {createMutation.isPending ? "Creating..." : "Create project"}
-        </button>
-      </form>
+      <Card className="mb-4">
+        <form onSubmit={handleSubmit}>
+          <h2 className="mb-4 text-lg font-semibold text-gray-900">Create project</h2>
+          <div className="mb-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="projectName">Name</Label>
+              <TextInput
+                id="projectName"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="projectDescription">Description</Label>
+              <TextInput
+                id="projectDescription"
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+              />
+            </div>
+          </div>
+          <Button type="submit" disabled={createMutation.isPending}>
+            {createMutation.isPending ? "Creating..." : "Create project"}
+          </Button>
+        </form>
+      </Card>
 
-      <section className="panel">
-        <h2>Your projects</h2>
+      <Card>
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">Your projects</h2>
         {!data || data.length === 0 ? (
           <EmptyState message="No projects yet." />
         ) : (
-          <div className="card-grid">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {data.map((project) => (
-              <Link key={project.id} to={`/projects/${project.id}`} className="project-card">
-                <h3>{project.name}</h3>
-                <p>{project.description ?? "No description"}</p>
-                <small>Updated {formatDateTime(project.updated_at)}</small>
+              <Link
+                key={project.id}
+                to={`/projects/${project.id}`}
+                className="block rounded-xl border border-gray-200 bg-gray-50 p-4 transition hover:border-blue-300 hover:bg-blue-50"
+              >
+                <h3 className="font-semibold text-gray-900">{project.name}</h3>
+                <p className="mt-1 text-sm text-gray-600">{project.description ?? "No description"}</p>
+                <small className="mt-2 block text-xs text-gray-500">
+                  Updated {formatDateTime(project.updated_at)}
+                </small>
               </Link>
             ))}
           </div>
         )}
-      </section>
+      </Card>
     </section>
   );
 }

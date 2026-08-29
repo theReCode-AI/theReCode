@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button, Card, Label, Select, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TextInput } from "flowbite-react";
 import { FormEvent, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
@@ -95,93 +96,90 @@ export function ProjectDetailPage() {
         title={projectQuery.data.name}
         subtitle={projectQuery.data.description ?? "Project workspace"}
         actions={
-          <Link to="/projects" className="text-link">
+          <Link to="/projects" className="text-sm font-medium text-blue-600 hover:underline">
             Back to projects
           </Link>
         }
       />
 
-      <form className="panel form-panel" onSubmit={handleRepositorySubmit}>
-        <h2>Link repository</h2>
-        <div className="form-grid">
-          <label>
-            Provider
-            <select
-              value={provider}
-              onChange={(event) => setProvider(event.target.value as GitProvider)}
-            >
-              <option value="github">GitHub</option>
-              <option value="gitlab">GitLab</option>
-            </select>
-          </label>
-            <label>
-            Repository
-            <input
-              placeholder="owner/repo or https://github.com/owner/repo"
-              value={fullName}
-              onChange={(event) => setFullName(event.target.value)}
-              required
-            />
-          </label>
-          <label>
-            Default branch
-            <input
-              value={defaultBranch}
-              onChange={(event) => setDefaultBranch(event.target.value)}
-              required
-            />
-          </label>
-        </div>
-        <button
-          type="submit"
-          className="primary-button"
-          disabled={createRepositoryMutation.isPending}
-        >
-          {createRepositoryMutation.isPending ? "Linking..." : "Link repository"}
-        </button>
-      </form>
+      <Card className="mb-4">
+        <form onSubmit={handleRepositorySubmit}>
+          <h2 className="mb-4 text-lg font-semibold text-gray-900">Link repository</h2>
+          <div className="mb-4 grid gap-4 sm:grid-cols-3">
+            <div>
+              <Label htmlFor="provider">Provider</Label>
+              <Select
+                id="provider"
+                value={provider}
+                onChange={(event) => setProvider(event.target.value as GitProvider)}
+              >
+                <option value="github">GitHub</option>
+                <option value="gitlab">GitLab</option>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="fullName">Repository</Label>
+              <TextInput
+                id="fullName"
+                placeholder="owner/repo or https://github.com/owner/repo"
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="defaultBranch">Default branch</Label>
+              <TextInput
+                id="defaultBranch"
+                value={defaultBranch}
+                onChange={(event) => setDefaultBranch(event.target.value)}
+                required
+              />
+            </div>
+          </div>
+          <Button type="submit" disabled={createRepositoryMutation.isPending}>
+            {createRepositoryMutation.isPending ? "Linking..." : "Link repository"}
+          </Button>
+        </form>
+      </Card>
 
-      <section className="panel">
-        <div className="panel-header">
-          <h2>Start run</h2>
-        </div>
-        <p className="run-meta">
+      <Card className="mb-4">
+        <h2 className="mb-2 text-lg font-semibold text-gray-900">Start run</h2>
+        <p className="mb-4 text-sm text-gray-500">
           Select a linked repository, then create a run. Open the run and use{" "}
           <strong>Clone repository</strong> on the Overview tab to pull the code. Save your Git token
           under Settings first.
         </p>
-        <div className="form-grid">
-          <label>
-            Repository
-            <select
-              value={selectedRepositoryId}
-              onChange={(event) => setSelectedRepositoryId(event.target.value)}
-            >
-              <option value="">No repository selected</option>
-              {repositories.map((repository) => (
-                <option key={repository.id} value={repository.id}>
-                  {repository.full_name} ({repository.default_branch})
-                </option>
-              ))}
-            </select>
-          </label>
+        <div className="mb-4 max-w-md">
+          <Label htmlFor="repository">Repository</Label>
+          <Select
+            id="repository"
+            value={selectedRepositoryId}
+            onChange={(event) => setSelectedRepositoryId(event.target.value)}
+          >
+            <option value="">No repository selected</option>
+            {repositories.map((repository) => (
+              <option key={repository.id} value={repository.id}>
+                {repository.full_name} ({repository.default_branch})
+              </option>
+            ))}
+          </Select>
         </div>
-        <button
+        <Button
           type="button"
-          className="primary-button"
           disabled={createRunMutation.isPending || !selectedRepositoryId}
           onClick={() => createRunMutation.mutate()}
         >
           {createRunMutation.isPending ? "Creating run..." : "Create run"}
-        </button>
-      </section>
+        </Button>
+      </Card>
 
-      <section className="panel">
-        <h2>Linked repositories</h2>
+      <Card className="mb-4">
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">Linked repositories</h2>
         {repositories.length === 0 ? (
           <EmptyState message="No repositories linked yet." />
         ) : (
-          <ul className="simple-list">
+          <ul className="list-disc space-y-2 pl-5 text-sm text-gray-700">
             {repositories.map((repository) => (
               <li key={repository.id}>
                 <strong>{repository.full_name}</strong> · {repository.provider} ·{" "}
@@ -190,49 +188,51 @@ export function ProjectDetailPage() {
             ))}
           </ul>
         )}
-      </section>
+      </Card>
 
-      <section className="panel">
-        <h2>Runs</h2>
+      <Card>
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">Runs</h2>
         {runs.length === 0 ? (
           <EmptyState message="No runs for this project yet." />
         ) : (
-          <div className="table-wrap">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Run</th>
-                  <th>Status</th>
-                  <th>Created</th>
-                  <th>Report</th>
-                </tr>
-              </thead>
-              <tbody>
+          <div className="overflow-x-auto">
+            <Table hoverable>
+              <TableHead>
+                <TableRow>
+                  <TableHeadCell>Run</TableHeadCell>
+                  <TableHeadCell>Status</TableHeadCell>
+                  <TableHeadCell>Created</TableHeadCell>
+                  <TableHeadCell>Report</TableHeadCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
                 {runs.map((run) => (
-                  <tr key={run.id}>
-                    <td>
-                      <Link to={`/runs/${run.id}`}>{run.id.slice(-8)}</Link>
-                    </td>
-                    <td>
+                  <TableRow key={run.id}>
+                    <TableCell>
+                      <Link to={`/runs/${run.id}`} className="font-medium text-blue-600 hover:underline">
+                        {run.id.slice(-8)}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
                       <RunStatusBadge status={run.status} />
-                    </td>
-                    <td>{formatDateTime(run.created_at)}</td>
-                    <td>
+                    </TableCell>
+                    <TableCell>{formatDateTime(run.created_at)}</TableCell>
+                    <TableCell>
                       {["COMPLETED", "REPORTING"].includes(run.status) ? (
-                        <Link to={`/runs/${run.id}/reports`} className="text-link">
+                        <Link to={`/runs/${run.id}/reports`} className="text-sm font-medium text-blue-600 hover:underline">
                           View report
                         </Link>
                       ) : (
                         "—"
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
-      </section>
+      </Card>
     </section>
   );
 }

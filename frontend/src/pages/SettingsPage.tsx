@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Alert, Button, Card, Label, Select, TextInput } from "flowbite-react";
 import { FormEvent, useState } from "react";
 
 import { deleteGitCredential, listGitCredentials, saveGitCredential } from "@/api/git";
@@ -72,23 +73,23 @@ export function SettingsPage() {
         subtitle="Account preferences and Git provider access tokens."
       />
 
-      <section className="panel">
-        <h2>Account</h2>
-        <dl className="settings-list">
+      <Card className="mb-4">
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">Account</h2>
+        <dl className="grid gap-3 text-sm">
           <div>
-            <dt>Name</dt>
-            <dd>{user?.full_name}</dd>
+            <dt className="text-gray-500">Name</dt>
+            <dd className="font-medium text-gray-900">{user?.full_name}</dd>
           </div>
           <div>
-            <dt>Email</dt>
-            <dd>{user?.email}</dd>
+            <dt className="text-gray-500">Email</dt>
+            <dd className="font-medium text-gray-900">{user?.email}</dd>
           </div>
         </dl>
-      </section>
+      </Card>
 
-      <section className="panel form-panel">
-        <h2>Git credentials</h2>
-        <p className="page-subtitle">
+      <Card>
+        <h2 className="mb-2 text-lg font-semibold text-gray-900">Git credentials</h2>
+        <p className="mb-4 text-sm text-gray-500">
           Save a GitHub or GitLab personal access token before cloning repositories or creating pull
           requests. Tokens are encrypted on the server and never shown again after saving.
         </p>
@@ -99,24 +100,27 @@ export function SettingsPage() {
         ) : null}
 
         {credentialsQuery.data && credentialsQuery.data.length > 0 ? (
-          <ul className="simple-list git-credential-list">
+          <ul className="mb-6 space-y-3">
             {credentialsQuery.data.map((credential) => (
-              <li key={credential.id} className="git-credential-item">
+              <li
+                key={credential.id}
+                className="flex items-center justify-between gap-4 rounded-lg border border-gray-200 bg-gray-50 p-3"
+              >
                 <div>
-                  <strong>{credential.provider}</strong>
+                  <strong className="text-gray-900">{credential.provider}</strong>
                   {credential.token_label ? ` · ${credential.token_label}` : ""}
-                  <div className="page-subtitle">
+                  <div className="text-sm text-gray-500">
                     Updated {formatDateTime(credential.updated_at)}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  className="secondary-button"
+                <Button
+                  color="light"
+                  size="sm"
                   disabled={deleteMutation.isPending}
                   onClick={() => deleteMutation.mutate(credential.provider)}
                 >
                   Remove
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
@@ -124,29 +128,32 @@ export function SettingsPage() {
           <EmptyState message="No Git credentials saved yet." />
         ) : null}
 
-        <form className="form-grid" onSubmit={handleSubmit}>
-          <label>
-            Provider
-            <select
+        <form className="grid gap-4 sm:grid-cols-2" onSubmit={handleSubmit}>
+          <div>
+            <Label htmlFor="gitProvider">Provider</Label>
+            <Select
+              id="gitProvider"
               value={provider}
               onChange={(event) => setProvider(event.target.value as GitProvider)}
             >
               <option value="github">GitHub</option>
               <option value="gitlab">GitLab</option>
-            </select>
-          </label>
-          <label>
-            Label (optional)
-            <input
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="tokenLabel">Label (optional)</Label>
+            <TextInput
+              id="tokenLabel"
               placeholder="e.g. dev laptop"
               value={tokenLabel}
               onChange={(event) => setTokenLabel(event.target.value)}
               autoComplete="off"
             />
-          </label>
-          <label className="full-width">
-            Personal access token
-            <input
+          </div>
+          <div className="sm:col-span-2">
+            <Label htmlFor="accessToken">Personal access token</Label>
+            <TextInput
+              id="accessToken"
               type="password"
               placeholder={provider === "github" ? "ghp_..." : "glpat-..."}
               value={accessToken}
@@ -154,15 +161,19 @@ export function SettingsPage() {
               autoComplete="off"
               required
             />
-          </label>
-          {formError ? <p className="form-error full-width">{formError}</p> : null}
-          <div className="full-width">
-            <button type="submit" className="primary-button" disabled={saveMutation.isPending}>
+          </div>
+          {formError ? (
+            <div className="sm:col-span-2">
+              <Alert color="failure">{formError}</Alert>
+            </div>
+          ) : null}
+          <div className="sm:col-span-2">
+            <Button type="submit" disabled={saveMutation.isPending}>
               {saveMutation.isPending ? "Saving..." : "Save Git token"}
-            </button>
+            </Button>
           </div>
         </form>
-      </section>
+      </Card>
     </section>
   );
 }

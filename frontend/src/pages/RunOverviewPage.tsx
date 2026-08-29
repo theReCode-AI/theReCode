@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Alert, Button, Card } from "flowbite-react";
 import { useState } from "react";
 import { useOutletContext } from "react-router-dom";
 
@@ -69,53 +70,48 @@ export function RunOverviewPage() {
 
   return (
     <>
-      <section className="panel">
-        <div className="panel-header">
-          <h2>Repository actions</h2>
-        </div>
+      <Card className="mb-4">
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">Repository actions</h2>
         {!run.repository_id ? (
           <EmptyState message="Link a repository on the project page before cloning." />
         ) : (
           <>
-            <p className="run-meta">
+            <p className="mb-4 text-sm text-gray-500">
               Clone pulls the GitHub/GitLab repo into the run workspace on this server. Save your
               personal access token under Settings first.
             </p>
-            <div className="page-actions">
-              <button
-                type="button"
-                className="secondary-button"
+            <div className="flex flex-wrap gap-3">
+              <Button
+                color="light"
                 disabled={!canClone || cloneMutation.isPending || executeMutation.isPending}
                 onClick={() => cloneMutation.mutate()}
               >
                 {cloneMutation.isPending ? "Cloning..." : "Clone repository"}
-              </button>
-              <button
-                type="button"
-                className="primary-button"
+              </Button>
+              <Button
                 disabled={!canExecute || executeMutation.isPending || cloneMutation.isPending}
                 onClick={() => executeMutation.mutate()}
               >
                 {executeMutation.isPending ? "Starting..." : "Run full pipeline"}
-              </button>
+              </Button>
             </div>
           </>
         )}
-        {actionMessage ? <p className="state-message">{actionMessage}</p> : null}
-        {actionError ? <p className="form-error">{actionError}</p> : null}
-      </section>
+        {actionMessage ? <Alert color="info" className="mt-4">{actionMessage}</Alert> : null}
+        {actionError ? <Alert color="failure" className="mt-4">{actionError}</Alert> : null}
+      </Card>
 
-      <section className="panel">
-        <h2>Autonomous run overview</h2>
-        <p>
+      <Card className="mb-4">
+        <h2 className="mb-2 text-lg font-semibold text-gray-900">Autonomous run overview</h2>
+        <p className="mb-4 text-sm text-gray-700">
           This run is currently <strong>{run.status}</strong>. Updates stream live over SSE
           ({connectionStatus}).
         </p>
         {awaitingApproval ? (
-          <p className="state-message">
+          <Alert color="warning" className="mb-4">
             The pipeline is paused until you review and approve the required changes on the
             Approvals tab.
-          </p>
+          </Alert>
         ) : null}
         <RunSummaryGrid
           items={[
@@ -138,14 +134,16 @@ export function RunOverviewPage() {
           ]}
         />
         {findings.length === 0 ? (
-          <EmptyState message="No findings recorded yet. Diagnostic agents will populate this view." />
+          <div className="mt-4">
+            <EmptyState message="No findings recorded yet. Diagnostic agents will populate this view." />
+          </div>
         ) : null}
-      </section>
+      </Card>
 
-      <section className="panel">
-        <h2>Agent timeline</h2>
+      <Card>
+        <h2 className="mb-4 text-lg font-semibold text-gray-900">Agent timeline</h2>
         <AgentTimeline events={events} />
-      </section>
+      </Card>
     </>
   );
 }

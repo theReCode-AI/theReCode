@@ -1,7 +1,9 @@
+import { Alert, Button, Card, Label, TextInput } from "flowbite-react";
 import { FormEvent, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
+import { AuthLayout } from "@/components/auth/AuthLayout";
 import { useAuthStore } from "@/stores/authStore";
 
 export function LoginPage() {
@@ -36,36 +38,69 @@ export function LoginPage() {
   }
 
   return (
-    <div className="auth-page">
-      <form className="auth-card" onSubmit={handleSubmit}>
-        <h1>Sign in to CodeThera</h1>
-        <p className="page-subtitle">Monitor autonomous software engineering runs.</p>
-        <label>
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            required
-          />
-        </label>
-        <label>
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            required
-          />
-        </label>
-        {error ? <p className="form-error">{error}</p> : null}
-        <button type="submit" className="primary-button" disabled={isSubmitting}>
-          {isSubmitting ? "Signing in..." : "Sign in"}
-        </button>
-        <p className="auth-footer">
-          New here? <Link to="/register">Create an account</Link>
-        </p>
-      </form>
-    </div>
+    <AuthLayout>
+      <Card className="border border-white/10 bg-white/10 shadow-2xl shadow-black/20 backdrop-blur-md">
+        <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
+          <div className="text-center lg:text-left">
+            <h1 className="text-2xl font-bold tracking-tight text-white">Welcome back</h1>
+            <p className="mt-1.5 text-sm text-slate-300">
+              Sign in to monitor autonomous engineering runs.
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="email" className="mb-1.5 text-slate-200">
+              Email
+            </Label>
+            <TextInput
+              id="email"
+              type="email"
+              placeholder="you@company.com"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              sizing="lg"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="password" className="mb-1.5 text-slate-200">
+              Password
+            </Label>
+            <TextInput
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              sizing="lg"
+            />
+          </div>
+
+          {error ? <Alert color="failure">{error}</Alert> : null}
+
+          <Button
+            type="submit"
+            color="blue"
+            size="lg"
+            className="w-full bg-gradient-to-r from-blue-600 to-blue-700"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Signing in..." : "Sign in"}
+          </Button>
+
+          <p className="text-center text-sm text-slate-400">
+            New to CodeThera?{" "}
+            <Link
+              to="/register"
+              className="font-semibold text-blue-400 hover:text-blue-300 hover:underline"
+            >
+              Create an account
+            </Link>
+          </p>
+        </form>
+      </Card>
+    </AuthLayout>
   );
 }

@@ -1,12 +1,14 @@
+import { Badge } from "flowbite-react";
+
 import type { RunStatus } from "@/types/run";
 import { formatStatus } from "@/utils/runStages";
 
-const STATUS_CLASS: Record<string, string> = {
-  COMPLETED: "status-completed",
-  FAILED: "status-failed",
-  CANCELLED: "status-cancelled",
-  AWAITING_APPROVAL: "status-warning",
-  SELF_CORRECTING: "status-warning",
+const STATUS_COLOR: Record<string, "success" | "failure" | "warning" | "info" | "gray"> = {
+  COMPLETED: "success",
+  FAILED: "failure",
+  CANCELLED: "failure",
+  AWAITING_APPROVAL: "warning",
+  SELF_CORRECTING: "warning",
 };
 
 interface RunStatusBadgeProps {
@@ -14,6 +16,6 @@ interface RunStatusBadgeProps {
 }
 
 export function RunStatusBadge({ status }: RunStatusBadgeProps) {
-  const className = STATUS_CLASS[status] ?? "status-active";
-  return <span className={`status-badge ${className}`}>{formatStatus(status)}</span>;
+  const color = STATUS_COLOR[status] ?? "info";
+  return <Badge color={color}>{formatStatus(status)}</Badge>;
 }

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Badge } from "flowbite-react";
 
 import { getHealth } from "../api/client";
 
@@ -10,16 +11,19 @@ export function HealthStatus() {
   });
 
   if (isLoading) {
-    return <p data-testid="health-status">Checking backend health...</p>;
+    return <p data-testid="health-status" className="text-sm text-gray-400">Checking backend health...</p>;
   }
 
   if (isError || !data) {
-    return <p data-testid="health-status">Backend unavailable</p>;
+    return <p data-testid="health-status" className="text-sm text-gray-400">Backend unavailable</p>;
   }
 
   return (
-    <p data-testid="health-status">
-      Backend status: {data.status} ({data.service})
+    <p data-testid="health-status" className="text-sm text-gray-400">
+      Backend status:{" "}
+      <Badge color="success" className="inline">
+        {data.status} ({data.service})
+      </Badge>
     </p>
   );
 }

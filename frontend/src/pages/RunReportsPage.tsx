@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button, Card } from "flowbite-react";
 import { useOutletContext, useParams } from "react-router-dom";
 
 import { generateRunReport, getRunReport, getRunReportMarkdown } from "@/api/runs";
@@ -53,18 +54,13 @@ export function RunReportsPage() {
   }
 
   return (
-    <section className="panel">
-      <div className="panel-header">
-        <h2>Run report</h2>
+    <Card>
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <h2 className="text-lg font-semibold text-gray-900">Run report</h2>
         {canGenerateReport ? (
-          <button
-            type="button"
-            className="primary-button"
-            disabled={generateMutation.isPending}
-            onClick={() => generateMutation.mutate()}
-          >
+          <Button disabled={generateMutation.isPending} onClick={() => generateMutation.mutate()}>
             {generateMutation.isPending ? "Generating..." : "Generate report"}
-          </button>
+          </Button>
         ) : null}
       </div>
 
@@ -85,7 +81,7 @@ export function RunReportsPage() {
         />
       ) : (
         <>
-          <div className="report-summary">
+          <div className="mb-4 space-y-1 text-sm text-gray-700">
             <p>
               Final health score: <strong>{report.final_health_score}/100</strong>
             </p>
@@ -93,7 +89,12 @@ export function RunReportsPage() {
             <p>Generated: {formatDateTime(report.created_at)}</p>
             {report.pull_request_url ? (
               <p>
-                <a href={report.pull_request_url} target="_blank" rel="noreferrer">
+                <a
+                  href={report.pull_request_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-blue-600 hover:underline"
+                >
                   Open pull request
                 </a>
               </p>
@@ -110,11 +111,11 @@ export function RunReportsPage() {
         </>
       )}
 
-      <h3>Git finalization</h3>
+      <h3 className="mb-3 mt-6 text-base font-semibold text-gray-900">Git finalization</h3>
       {!latestGitOp ? (
         <EmptyState message="No git operations recorded yet." />
       ) : (
-        <ul className="simple-list">
+        <ul className="list-disc space-y-2 pl-5 text-sm text-gray-700">
           <li>
             Status: {latestGitOp.status}
             {latestGitOp.branch_name ? ` · Branch: ${latestGitOp.branch_name}` : ""}
@@ -122,7 +123,12 @@ export function RunReportsPage() {
           </li>
           {latestGitOp.pull_request_url ? (
             <li>
-              <a href={latestGitOp.pull_request_url} target="_blank" rel="noreferrer">
+              <a
+                href={latestGitOp.pull_request_url}
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-blue-600 hover:underline"
+              >
                 View PR/MR
               </a>
             </li>
@@ -131,15 +137,15 @@ export function RunReportsPage() {
       )}
 
       {report ? (
-        <p className="run-meta">
+        <p className="mt-4 text-sm text-gray-500">
           Raw artifacts are stored on the server at{" "}
           <span className="mono-text">{report.markdown_path}</span>
         </p>
       ) : (
-        <p className="run-meta">
+        <p className="mt-4 text-sm text-gray-500">
           After a completed run, the full report will appear here.
         </p>
       )}
-    </section>
+    </Card>
   );
 }

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Card, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow } from "flowbite-react";
 import { Link } from "react-router-dom";
 
 import { listProjects } from "@/api/projects";
@@ -64,57 +65,59 @@ export function DashboardPage() {
         subtitle="Track autonomous runs, projects, and agent progress."
       />
 
-      <div className="summary-grid dashboard-summary">
-        <article className="summary-card">
-          <span className="summary-label">Projects</span>
-          <strong className="summary-value">{projects?.length ?? 0}</strong>
-        </article>
-        <article className="summary-card">
-          <span className="summary-label">Active runs</span>
-          <strong className="summary-value">{activeRuns}</strong>
-        </article>
-        <article className="summary-card">
-          <span className="summary-label">Recent runs</span>
-          <strong className="summary-value">{recentRuns?.length ?? 0}</strong>
-        </article>
+      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+        <Card>
+          <p className="text-sm text-gray-500">Projects</p>
+          <p className="text-3xl font-bold text-gray-900">{projects?.length ?? 0}</p>
+        </Card>
+        <Card>
+          <p className="text-sm text-gray-500">Active runs</p>
+          <p className="text-3xl font-bold text-gray-900">{activeRuns}</p>
+        </Card>
+        <Card>
+          <p className="text-sm text-gray-500">Recent runs</p>
+          <p className="text-3xl font-bold text-gray-900">{recentRuns?.length ?? 0}</p>
+        </Card>
       </div>
 
-      <section className="panel">
-        <div className="panel-header">
-          <h2>Recent runs</h2>
-          <Link to="/projects" className="text-link">
+      <Card>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">Recent runs</h2>
+          <Link to="/projects" className="text-sm font-medium text-blue-600 hover:underline">
             View projects
           </Link>
         </div>
         {!recentRuns || recentRuns.length === 0 ? (
           <EmptyState message="No runs yet. Create a project and start an autonomous run." />
         ) : (
-          <div className="table-wrap">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Run</th>
-                  <th>Status</th>
-                  <th>Updated</th>
-                </tr>
-              </thead>
-              <tbody>
+          <div className="overflow-x-auto">
+            <Table hoverable>
+              <TableHead>
+                <TableRow>
+                  <TableHeadCell>Run</TableHeadCell>
+                  <TableHeadCell>Status</TableHeadCell>
+                  <TableHeadCell>Updated</TableHeadCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
                 {recentRuns.map((run) => (
-                  <tr key={run.id}>
-                    <td>
-                      <Link to={`/runs/${run.id}`}>{run.id.slice(-8)}</Link>
-                    </td>
-                    <td>
+                  <TableRow key={run.id}>
+                    <TableCell>
+                      <Link to={`/runs/${run.id}`} className="font-medium text-blue-600 hover:underline">
+                        {run.id.slice(-8)}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
                       <RunStatusBadge status={run.status} />
-                    </td>
-                    <td>{formatDateTime(run.updated_at)}</td>
-                  </tr>
+                    </TableCell>
+                    <TableCell>{formatDateTime(run.updated_at)}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
-      </section>
+      </Card>
     </section>
   );
 }
