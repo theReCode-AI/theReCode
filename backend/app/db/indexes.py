@@ -100,4 +100,11 @@ INDEX_DEFINITIONS: dict[str, list[IndexDefinition]] = {
     collections.REPORTS: [
         IndexDefinition([("run_id", ASCENDING)], {"unique": True, "name": "reports_run_id_unique"}),
     ],
+    collections.CHAT_MESSAGES: [
+        IndexDefinition(
+            [("run_id", ASCENDING), ("user_id", ASCENDING), ("created_at", ASCENDING)],
+            {"name": "chat_messages_run_user_created_at"},
+        ),
+        IndexDefinition([("project_id", ASCENDING)], {"name": "chat_messages_project_id"}),
+    ],
 }

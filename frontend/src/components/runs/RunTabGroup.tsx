@@ -7,6 +7,7 @@ const RUN_TABS = [
   { to: "diff", label: "Diff", end: true },
   { to: "approvals", label: "Approvals", end: true },
   { to: "reports", label: "Reports", end: true },
+  { to: "chat", label: "Chat", end: true },
 ] as const;
 
 interface RunTabGroupProps {

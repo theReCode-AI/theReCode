@@ -6,6 +6,7 @@ from app.db.dependencies import get_database
 from app.db.repositories.agent_event_repository import AgentEventRepository
 from app.db.repositories.agent_state_repository import AgentStateRepository
 from app.db.repositories.approval_repository import ApprovalRepository
+from app.db.repositories.chat_message_repository import ChatMessageRepository
 from app.db.repositories.finding_repository import FindingRepository
 from app.db.repositories.fix_attempt_repository import FixAttemptRepository
 from app.db.repositories.fix_plan_repository import FixPlanRepository
@@ -28,9 +29,11 @@ from app.google_adk.factory import build_google_adk_orchestrator, build_service_
 from app.google_adk.orchestrator import GoogleAdkOrchestrator
 from app.services.auth_service import AuthService
 from app.services.baseline_scan_service import BaselineScanService
+from app.services.chat_service import ChatService
 from app.services.code_fix_service import CodeFixService
 from app.services.diagnostic_agent_service import DiagnosticAgentService
 from app.services.fix_planner_service import FixPlannerService
+from app.services.gemini_chat_client import GeminiChatClient
 from app.services.git_credential_service import GitCredentialService
 from app.services.git_finalization_service import GitFinalizationService
 from app.services.git_service import GitService
@@ -151,6 +154,12 @@ def get_report_repository(
     database: Database = Depends(get_database),
 ) -> ReportRepository:
     return ReportRepository(database)
+
+
+def get_chat_message_repository(
+    database: Database = Depends(get_database),
+) -> ChatMessageRepository:
+    return ChatMessageRepository(database)
 
 
 def get_run_repository(database: Database = Depends(get_database)) -> RunRepository:
@@ -667,4 +676,25 @@ def get_run_progress_stream_service(
         run_repository=run_repository,
         event_repository=event_repository,
         state_repository=state_repository,
+    )
+
+
+def get_chat_service(
+    app_settings: Settings = Depends(get_settings),
+    run_repository: RunRepository = Depends(get_run_repository),
+    project_service: ProjectService = Depends(get_project_service),
+    chat_message_repository: ChatMessageRepository = Depends(get_chat_message_repository),
+    finding_repository: FindingRepository = Depends(get_finding_repository),
+    memory_repository: MemoryRepository = Depends(get_memory_repository),
+    report_repository: ReportRepository = Depends(get_report_repository),
+) -> ChatService:
+    return ChatService(
+        settings=app_settings,
+        run_repository=run_repository,
+        project_service=project_service,
+        chat_message_repository=chat_message_repository,
+        finding_repository=finding_repository,
+        memory_repository=memory_repository,
+        report_repository=report_repository,
+        gemini_client=GeminiChatClient(app_settings),
     )

@@ -20,6 +20,7 @@ MEMORIES = "memories"
 GIT_OPERATIONS = "git_operations"
 GIT_CREDENTIALS = "git_credentials"
 REPORTS = "reports"
+CHAT_MESSAGES = "chat_messages"
 
 ALL_COLLECTIONS = (
     USERS,
@@ -42,4 +43,5 @@ ALL_COLLECTIONS = (
     GIT_OPERATIONS,
     GIT_CREDENTIALS,
     REPORTS,
+    CHAT_MESSAGES,
 )

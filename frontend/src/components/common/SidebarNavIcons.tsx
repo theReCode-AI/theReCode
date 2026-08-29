@@ -129,6 +129,25 @@ export const ChevronRightIcon: FC<IconProps> = (props) => (
   </svg>
 );
 
+/** Chat / conversation */
+export const ChatIcon: FC<IconProps> = (props) => (
+  <svg
+    aria-hidden="true"
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    strokeWidth={1.75}
+    stroke="currentColor"
+    {...props}
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M8.625 9.75h6.75M8.625 13.5h4.125M20.25 12a8.25 8.25 0 1 1-3.05-6.372L21 3.75l-.878 4.078A8.22 8.22 0 0 1 20.25 12Z"
+    />
+  </svg>
+);
+
 /** Git / repositories */
 export const RepositoriesStatIcon: FC<IconProps> = (props) => (
   <svg

@@ -4,11 +4,13 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { PublicOnlyRoute, ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { DashboardPage } from "@/pages/DashboardPage";
+import { ChatPage } from "@/pages/ChatPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { ProjectDetailPage } from "@/pages/ProjectDetailPage";
 import { ProjectsPage } from "@/pages/ProjectsPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { RunApprovalsPage } from "@/pages/RunApprovalsPage";
+import { RunChatPage } from "@/pages/RunChatPage";
 import { RunDetailPage } from "@/pages/RunDetailPage";
 import { RunDiffPage } from "@/pages/RunDiffPage";
 import { RunFindingsPage } from "@/pages/RunFindingsPage";
@@ -39,12 +41,14 @@ export function AppRoutes() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
+          <Route path="/chat" element={<ChatPage />} />
           <Route path="/runs/:runId" element={<RunDetailPage />}>
             <Route index element={<RunOverviewPage />} />
             <Route path="findings" element={<RunFindingsPage />} />
             <Route path="diff" element={<RunDiffPage />} />
             <Route path="approvals" element={<RunApprovalsPage />} />
             <Route path="reports" element={<RunReportsPage />} />
+            <Route path="chat" element={<RunChatPage />} />
           </Route>
           <Route path="/settings" element={<SettingsPage />} />
         </Route>

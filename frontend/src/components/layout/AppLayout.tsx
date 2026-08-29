@@ -3,6 +3,7 @@ import { NavLink, Outlet } from "react-router-dom";
 
 import { MenuIcon } from "@/components/common/MenuIcon";
 import {
+  ChatIcon,
   DashboardIcon,
   ProjectsIcon,
   SettingsIcon,
@@ -19,6 +20,7 @@ const BRAND_LOGO = "/codethera-hero.png";
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", end: true, icon: DashboardIcon },
   { to: "/projects", label: "Projects", icon: ProjectsIcon },
+  { to: "/chat", label: "Chat", icon: ChatIcon },
   { to: "/settings", label: "Settings", icon: SettingsIcon },
 ];
 
