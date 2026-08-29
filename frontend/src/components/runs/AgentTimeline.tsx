@@ -26,9 +26,9 @@ export function AgentTimeline({ events }: AgentTimelineProps) {
         <li key={event.id} className="flex gap-3">
           <span className="mt-1.5 h-3 w-3 shrink-0 rounded-full bg-blue-600" />
           <div>
-            <strong className="text-gray-900">{formatEventLabel(event.event_type)}</strong>
-            {event.message ? <p className="mt-1 text-sm text-gray-600">{event.message}</p> : null}
-            <small className="mt-1 block text-xs text-gray-500">
+            <strong className="text-gray-900 dark:text-white">{formatEventLabel(event.event_type)}</strong>
+            {event.message ? <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{event.message}</p> : null}
+            <small className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
               {formatDateTime(event.created_at)}
               {event.agent ? ` · ${event.agent}` : ""}
             </small>

@@ -56,7 +56,7 @@ export function RunReportsPage() {
   return (
     <Card>
       <div className="mb-4 flex items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold text-gray-900">Run report</h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Run report</h2>
         {canGenerateReport ? (
           <Button disabled={generateMutation.isPending} onClick={() => generateMutation.mutate()}>
             {generateMutation.isPending ? "Generating..." : "Generate report"}
@@ -81,7 +81,7 @@ export function RunReportsPage() {
         />
       ) : (
         <>
-          <div className="mb-4 space-y-1 text-sm text-gray-700">
+          <div className="mb-4 space-y-1 text-sm text-gray-700 dark:text-gray-300">
             <p>
               Final health score: <strong>{report.final_health_score}/100</strong>
             </p>
@@ -111,11 +111,11 @@ export function RunReportsPage() {
         </>
       )}
 
-      <h3 className="mb-3 mt-6 text-base font-semibold text-gray-900">Git finalization</h3>
+      <h3 className="mb-3 mt-6 text-base font-semibold text-gray-900 dark:text-white">Git finalization</h3>
       {!latestGitOp ? (
         <EmptyState message="No git operations recorded yet." />
       ) : (
-        <ul className="list-disc space-y-2 pl-5 text-sm text-gray-700">
+        <ul className="list-disc space-y-2 pl-5 text-sm text-gray-700 dark:text-gray-300">
           <li>
             Status: {latestGitOp.status}
             {latestGitOp.branch_name ? ` · Branch: ${latestGitOp.branch_name}` : ""}
@@ -137,12 +137,12 @@ export function RunReportsPage() {
       )}
 
       {report ? (
-        <p className="mt-4 text-sm text-gray-500">
+        <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
           Raw artifacts are stored on the server at{" "}
           <span className="mono-text">{report.markdown_path}</span>
         </p>
       ) : (
-        <p className="mt-4 text-sm text-gray-500">
+        <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
           After a completed run, the full report will appear here.
         </p>
       )}

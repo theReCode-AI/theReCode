@@ -104,7 +104,7 @@ export function ProjectDetailPage() {
 
       <Card className="mb-4">
         <form onSubmit={handleRepositorySubmit}>
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Link repository</h2>
+          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Link repository</h2>
           <div className="mb-4 grid gap-4 sm:grid-cols-3">
             <div>
               <Label htmlFor="provider">Provider</Label>
@@ -144,8 +144,8 @@ export function ProjectDetailPage() {
       </Card>
 
       <Card className="mb-4">
-        <h2 className="mb-2 text-lg font-semibold text-gray-900">Start run</h2>
-        <p className="mb-4 text-sm text-gray-500">
+        <h2 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">Start run</h2>
+        <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
           Select a linked repository, then create a run. Open the run and use{" "}
           <strong>Clone repository</strong> on the Overview tab to pull the code. Save your Git token
           under Settings first.
@@ -175,11 +175,11 @@ export function ProjectDetailPage() {
       </Card>
 
       <Card className="mb-4">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Linked repositories</h2>
+        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Linked repositories</h2>
         {repositories.length === 0 ? (
           <EmptyState message="No repositories linked yet." />
         ) : (
-          <ul className="list-disc space-y-2 pl-5 text-sm text-gray-700">
+          <ul className="list-disc space-y-2 pl-5 text-sm text-gray-700 dark:text-gray-300">
             {repositories.map((repository) => (
               <li key={repository.id}>
                 <strong>{repository.full_name}</strong> · {repository.provider} ·{" "}
@@ -191,7 +191,7 @@ export function ProjectDetailPage() {
       </Card>
 
       <Card>
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Runs</h2>
+        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Runs</h2>
         {runs.length === 0 ? (
           <EmptyState message="No runs for this project yet." />
         ) : (

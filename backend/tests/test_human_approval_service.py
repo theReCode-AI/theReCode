@@ -247,6 +247,50 @@ def test_prepare_and_approve_risk_gate_approval(human_approval_stack) -> None:
     assert any(event.event_type.value == "HUMAN_APPROVED" for event in events)
 
 
+def test_approve_succeeds_when_workspace_disk_is_gone(human_approval_stack) -> None:
+    """Cloud Run recycles ephemeral /workspace between requests."""
+    (
+        service,
+        run_service,
+        project_service,
+        workspace_manager,
+        run_repository,
+        fix_plan_repository,
+        risk_decision_repository,
+        approval_repository,
+        _event_repository,
+    ) = human_approval_stack
+    user_id = str(ObjectId())
+    project = project_service.create_project(user_id, ProjectCreate(name="Approval Project"))
+    run = run_service.create_run(user_id, RunCreate(project_id=project.id))
+    run_repository.update_status(run.id, user_id, RunStatus.AWAITING_APPROVAL)
+
+    patch_plan = _high_risk_patch_plan(run.id)
+    fix_plan_repository.replace_for_run(run.id, [patch_plan])
+    risk_decisions = RiskPolicyEngine().assess(run.id, [patch_plan])
+    risk_decision_repository.replace_for_run(run.id, risk_decisions)
+
+    prepared = service.prepare_approvals(user_id, run.id)
+    approval_id = prepared.approvals[0].approval_id
+
+    import shutil
+
+    shutil.rmtree(workspace_manager.get_run_workspace(run.id).root)
+
+    decision = service.submit_decision(
+        user_id,
+        run.id,
+        approval_id,
+        SubmitApprovalDecisionRequest(decision=HumanDecision.APPROVE),
+    )
+
+    assert decision.run_status == RunStatus.FIXING.value
+    assert decision.approval.status == ApprovalStatus.APPROVED
+    stored = approval_repository.get_by_id_for_run(approval_id, run.id)
+    assert stored is not None
+    assert stored.status == ApprovalStatus.APPROVED
+
+
 def test_request_changes_writes_feedback_and_moves_to_planning(human_approval_stack) -> None:
     (
         service,

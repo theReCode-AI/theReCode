@@ -11,9 +11,9 @@ interface SummaryCardProps {
 export function SummaryCard({ label, value, hint, link }: SummaryCardProps) {
   const content = (
     <>
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
-      {hint ? <p className="text-sm text-gray-500">{hint}</p> : null}
+      <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
+      <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
+      {hint ? <p className="text-sm text-gray-500 dark:text-gray-400">{hint}</p> : null}
     </>
   );
 

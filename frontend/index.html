@@ -5,6 +5,19 @@
     <link rel="icon" type="image/png" href="/codethera-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CodeThera</title>
+    <script>
+      (function () {
+        try {
+          var mode = localStorage.getItem("flowbite-theme-mode") || "auto";
+          var dark =
+            mode === "dark" ||
+            (mode === "auto" &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.classList.add("dark");
+          else document.documentElement.classList.remove("dark");
+        } catch (_) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -35,6 +35,8 @@ from app.workspace.artifact_reader import (
     WorkspaceArtifactNotFoundError,
     read_workspace_text_file,
 )
+from app.workspace.exceptions import WorkspaceNotFoundError
+from app.workspace.models import RunWorkspace
 
 logger = get_logger(__name__)
 
@@ -308,13 +310,26 @@ class HumanApprovalService:
                 "status": _map_decision_to_status(request.decision),
             },
         )
-        workspace = self._run_service.get_workspace_for_run(user_id, run_id)
-        output_dir = workspace.baseline / "approvals" / approval_id
-        self._persist_approval(updated_approval, output_dir)
+
+        workspace = self._try_get_workspace(user_id, run_id)
+        if workspace is not None:
+            output_dir = workspace.baseline / "approvals" / approval_id
+            self._persist_approval(updated_approval, output_dir)
+        else:
+            logger.warning(
+                "Run workspace missing; persisting approval decision to database only",
+                extra={
+                    "run_id": run_id,
+                    "approval_id": approval_id,
+                    "stage": "human_approval",
+                },
+            )
+            self._approval_repository.update(updated_approval)
 
         replanning_required = False
         if request.decision == HumanDecision.REQUEST_CHANGES:
-            self._append_human_feedback(workspace.baseline, updated_approval)
+            if workspace is not None:
+                self._append_human_feedback(workspace.baseline, updated_approval)
             replanning_required = True
 
         pending = self._approval_repository.list_pending_by_run(run_id)
@@ -325,7 +340,8 @@ class HumanApprovalService:
             replanning_required,
         )
         self._run_repository.update_status(run_id, user_id, next_status)
-        self._write_approvals_artifact(workspace.baseline, run_id)
+        if workspace is not None:
+            self._write_approvals_artifact(workspace.baseline, run_id)
         self._emit_decision_event(run_id, updated_approval)
 
         logger.info(
@@ -344,14 +360,32 @@ class HumanApprovalService:
             replanning_required=replanning_required,
         )
 
+    def _try_get_workspace(self, user_id: str, run_id: str) -> RunWorkspace | None:
+        """Return the run workspace, or None when Cloud Run disk was recycled."""
+        try:
+            return self._run_service.get_workspace_for_run(user_id, run_id)
+        except WorkspaceNotFoundError:
+            return None
+
     def _persist_approval(self, approval: HumanApproval, output_dir: Path) -> HumanApproval:
-        output_dir.mkdir(parents=True, exist_ok=True)
-        artifact_path = output_dir / "approval.json"
-        approval = approval.model_copy(update={"artifact_path": str(artifact_path)})
-        artifact_path.write_text(
-            json.dumps(approval.model_dump(mode="json"), indent=2),
-            encoding="utf-8",
-        )
+        try:
+            output_dir.mkdir(parents=True, exist_ok=True)
+            artifact_path = output_dir / "approval.json"
+            approval = approval.model_copy(update={"artifact_path": str(artifact_path)})
+            artifact_path.write_text(
+                json.dumps(approval.model_dump(mode="json"), indent=2),
+                encoding="utf-8",
+            )
+        except OSError:
+            logger.exception(
+                "Failed to write approval artifact; continuing with database update",
+                extra={
+                    "run_id": approval.run_id,
+                    "approval_id": approval.approval_id,
+                    "stage": "human_approval",
+                },
+            )
+
         existing = self._approval_repository.get_by_id_for_run(
             approval.approval_id,
             approval.run_id,

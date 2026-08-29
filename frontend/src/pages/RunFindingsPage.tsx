@@ -12,7 +12,7 @@ export function RunFindingsPage() {
 
   return (
     <Card>
-      <h2 className="mb-4 text-lg font-semibold text-gray-900">Findings</h2>
+      <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Findings</h2>
       {findings.length === 0 ? (
         <EmptyState message="No findings available for this run." />
       ) : (

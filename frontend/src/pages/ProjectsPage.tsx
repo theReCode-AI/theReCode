@@ -55,7 +55,7 @@ export function ProjectsPage() {
 
       <Card className="mb-4">
         <form onSubmit={handleSubmit}>
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">Create project</h2>
+          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Create project</h2>
           <div className="mb-4 grid gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="projectName">Name</Label>
@@ -82,7 +82,7 @@ export function ProjectsPage() {
       </Card>
 
       <Card>
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Your projects</h2>
+        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Your projects</h2>
         {!data || data.length === 0 ? (
           <EmptyState message="No projects yet." />
         ) : (
@@ -91,11 +91,11 @@ export function ProjectsPage() {
               <Link
                 key={project.id}
                 to={`/projects/${project.id}`}
-                className="block rounded-xl border border-gray-200 bg-gray-50 p-4 transition hover:border-blue-300 hover:bg-blue-50"
+                className="block rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-4 transition hover:border-blue-300 hover:bg-blue-50"
               >
-                <h3 className="font-semibold text-gray-900">{project.name}</h3>
-                <p className="mt-1 text-sm text-gray-600">{project.description ?? "No description"}</p>
-                <small className="mt-2 block text-xs text-gray-500">
+                <h3 className="font-semibold text-gray-900 dark:text-white">{project.name}</h3>
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{project.description ?? "No description"}</p>
+                <small className="mt-2 block text-xs text-gray-500 dark:text-gray-400">
                   Updated {formatDateTime(project.updated_at)}
                 </small>
               </Link>

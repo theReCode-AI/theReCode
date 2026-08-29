@@ -1,9 +1,9 @@
 gcloud builds submit ./frontend \
   --config=./frontend/cloudbuild.yaml \
-  --substitutions=_IMAGE=europe-north1-docker.pkg.dev/todo-app-506706/harpic-cursor-v1/harpic-frontend:v1,_VITE_API_BASE_URL=https://harpic-cursor-v1-img-349908796899.europe-west1.run.app/api/v1
+  --substitutions=_IMAGE=europe-north1-docker.pkg.dev/todo-app-506706/harpic-cursor-v1/harpic-frontend:v2,_VITE_API_BASE_URL=https://harpic-cursor-v1-img-349908796899.europe-west1.run.app/api/v1
 
 gcloud run deploy harpic-frontend \
-  --image europe-north1-docker.pkg.dev/todo-app-506706/harpic-cursor-v1/harpic-frontend:v1 \
+  --image europe-north1-docker.pkg.dev/todo-app-506706/harpic-cursor-v1/harpic-frontend:v2 \
   --region europe-north1 \
   --port 8080 \
   --allow-unauthenticated

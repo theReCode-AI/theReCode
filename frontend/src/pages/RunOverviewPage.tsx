@@ -71,12 +71,12 @@ export function RunOverviewPage() {
   return (
     <>
       <Card className="mb-4">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Repository actions</h2>
+        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Repository actions</h2>
         {!run.repository_id ? (
           <EmptyState message="Link a repository on the project page before cloning." />
         ) : (
           <>
-            <p className="mb-4 text-sm text-gray-500">
+            <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
               Clone pulls the GitHub/GitLab repo into the run workspace on this server. Save your
               personal access token under Settings first.
             </p>
@@ -102,8 +102,8 @@ export function RunOverviewPage() {
       </Card>
 
       <Card className="mb-4">
-        <h2 className="mb-2 text-lg font-semibold text-gray-900">Autonomous run overview</h2>
-        <p className="mb-4 text-sm text-gray-700">
+        <h2 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">Autonomous run overview</h2>
+        <p className="mb-4 text-sm text-gray-700 dark:text-gray-300">
           This run is currently <strong>{run.status}</strong>. Updates stream live over SSE
           ({connectionStatus}).
         </p>
@@ -141,7 +141,7 @@ export function RunOverviewPage() {
       </Card>
 
       <Card>
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Agent timeline</h2>
+        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Agent timeline</h2>
         <AgentTimeline events={events} />
       </Card>
     </>

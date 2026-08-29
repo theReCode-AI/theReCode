@@ -113,7 +113,7 @@ export function RunApprovalsPage() {
   return (
     <Card>
       <div className="mb-4 flex items-center justify-between gap-4">
-        <h2 className="text-lg font-semibold text-gray-900">Human approvals</h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Human approvals</h2>
         {showPrepareButton ? (
           <Button disabled={prepareMutation.isPending} onClick={() => prepareMutation.mutate()}>
             {prepareMutation.isPending ? "Preparing..." : "Prepare approval cards"}
@@ -126,7 +126,7 @@ export function RunApprovalsPage() {
       ) : null}
 
       {pendingCount > 0 ? (
-        <p className="mb-4 text-sm text-gray-500">
+        <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
           {pendingCount} approval{pendingCount === 1 ? "" : "s"} waiting for your decision. The
           pipeline will stay paused until you approve.
         </p>
@@ -150,13 +150,13 @@ export function RunApprovalsPage() {
                 className={`rounded-xl border p-3 text-left transition ${
                   approval.approval_id === selectedApprovalId
                     ? "border-blue-600 bg-blue-50"
-                    : "border-gray-200 bg-gray-50 hover:border-gray-300"
+                    : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 hover:border-gray-300"
                 }`}
                 onClick={() => setSelectedApprovalId(approval.approval_id)}
               >
-                <strong className="block text-gray-900">{approval.trigger}</strong>
+                <strong className="block text-gray-900 dark:text-white">{approval.trigger}</strong>
                 <Badge color="gray" className="mt-1">{approval.status}</Badge>
-                <small className="mt-1 block text-xs text-gray-500">
+                <small className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
                   {formatDateTime(approval.created_at)}
                 </small>
               </button>
@@ -167,41 +167,41 @@ export function RunApprovalsPage() {
             <article className="space-y-4">
               <header className="flex items-start justify-between gap-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                     {selectedApproval.issue_title ?? selectedApproval.trigger}
                   </h3>
-                  <p className="mt-1 text-sm text-gray-600">{selectedApproval.reason}</p>
+                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">{selectedApproval.reason}</p>
                 </div>
                 <Badge color="gray">{selectedApproval.status}</Badge>
               </header>
 
               {selectedApproval.root_cause ? (
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
                   <strong>Root cause:</strong> {selectedApproval.root_cause}
                 </p>
               ) : null}
               {selectedApproval.risk_level ? (
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
                   <strong>Risk:</strong> {selectedApproval.risk_level}
                 </p>
               ) : null}
               {selectedApproval.evidence_summary ? (
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
                   <strong>Evidence:</strong> {selectedApproval.evidence_summary}
                 </p>
               ) : null}
               {selectedApproval.verification_summary ? (
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
                   <strong>Verification:</strong> {selectedApproval.verification_summary}
                 </p>
               ) : null}
               {selectedApproval.expected_tests.length > 0 ? (
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
                   <strong>Expected tests:</strong> {selectedApproval.expected_tests.join(", ")}
                 </p>
               ) : null}
               {selectedApproval.reviewer_feedback.length > 0 ? (
-                <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700">
+                <ul className="list-disc space-y-1 pl-5 text-sm text-gray-700 dark:text-gray-300">
                   {selectedApproval.reviewer_feedback.map((feedback) => (
                     <li key={feedback}>{feedback}</li>
                   ))}
@@ -211,7 +211,7 @@ export function RunApprovalsPage() {
               {selectedApproval.diff_artifact_path ? (
                 <div>
                   <div className="mb-3 flex items-center justify-between">
-                    <h4 className="font-semibold text-gray-900">Patch diff</h4>
+                    <h4 className="font-semibold text-gray-900 dark:text-white">Patch diff</h4>
                     <Link to="../diff" className="text-sm font-medium text-blue-600 hover:underline">
                       Open full diff viewer
                     </Link>
@@ -230,7 +230,7 @@ export function RunApprovalsPage() {
                   onSubmit={handleDecision}
                 />
               ) : (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   Decision: {selectedApproval.human_decision}
                   {selectedApproval.human_feedback
                     ? ` — ${selectedApproval.human_feedback}`

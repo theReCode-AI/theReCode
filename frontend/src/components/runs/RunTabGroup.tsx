@@ -45,7 +45,7 @@ function RunTabButton({
       color={isActive ? "blue" : "gray"}
       outline={!isActive}
       className={`inline-flex items-center gap-2 ${
-        isActive ? "border border-blue-600" : "border border-gray-300 bg-white text-gray-700"
+        isActive ? "border border-blue-600" : "border border-gray-300 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
       }`}
     >
       {label}

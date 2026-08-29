@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { ThemeToggle } from "@/components/common/ThemeToggle";
+
 const HERO_IMAGE = "/codethera-hero.png";
 
 interface AuthLayoutProps {
@@ -22,7 +24,10 @@ export function AuthLayout({ children }: AuthLayoutProps) {
     <div className="relative flex min-h-screen">
       <AuthGradientBackground />
 
-      {/* Left — logo */}
+      <div className="absolute right-4 top-4 z-20">
+        <ThemeToggle className="rounded-lg bg-white/10 text-white hover:bg-white/20" />
+      </div>
+
       <aside className="relative z-10 hidden w-1/2 flex-col items-center justify-center p-10 lg:flex">
         <img
           src={HERO_IMAGE}
@@ -31,7 +36,6 @@ export function AuthLayout({ children }: AuthLayoutProps) {
         />
       </aside>
 
-      {/* Right — form on same gradient */}
       <main className="relative z-10 flex w-full flex-col items-center justify-center px-6 py-12 lg:w-1/2">
         <div className="w-full max-w-md">
           <div className="mb-8 flex justify-center lg:hidden">

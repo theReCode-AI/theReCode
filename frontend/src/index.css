@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply min-h-screen bg-gray-50 text-gray-900 antialiased;
+    @apply min-h-screen bg-gray-50 text-gray-900 antialiased dark:bg-gray-900 dark:text-gray-100;
   }
 }
 
@@ -20,6 +20,10 @@
 .pipeline-edge {
   stroke: #cbd5e1;
   stroke-width: 2;
+}
+
+.dark .pipeline-edge {
+  stroke: #4b5563;
 }
 
 .pipeline-edge.is-complete {
@@ -47,6 +51,11 @@
   stroke-width: 1.5;
 }
 
+.dark .pipeline-graph-node rect {
+  fill: #1f2937;
+  stroke: #4b5563;
+}
+
 .pipeline-graph-node text {
   fill: #64748b;
   font-size: 11px;
@@ -54,13 +63,25 @@
   text-anchor: middle;
 }
 
+.dark .pipeline-graph-node text {
+  fill: #9ca3af;
+}
+
 .pipeline-graph-node.is-complete rect {
   fill: #f0fdf4;
   stroke: #22c55e;
 }
 
+.dark .pipeline-graph-node.is-complete rect {
+  fill: #052e16;
+}
+
 .pipeline-graph-node.is-complete text {
   fill: #166534;
+}
+
+.dark .pipeline-graph-node.is-complete text {
+  fill: #86efac;
 }
 
 .pipeline-graph-node.is-active rect {
@@ -69,8 +90,16 @@
   stroke-width: 2;
 }
 
+.dark .pipeline-graph-node.is-active rect {
+  fill: #1e3a8a;
+}
+
 .pipeline-graph-node.is-active text {
   fill: #1d4ed8;
+}
+
+.dark .pipeline-graph-node.is-active text {
+  fill: #93c5fd;
 }
 
 .pipeline-graph-node.is-failed rect {
@@ -78,13 +107,21 @@
   stroke: #ef4444;
 }
 
+.dark .pipeline-graph-node.is-failed rect {
+  fill: #450a0a;
+}
+
 .pipeline-graph-node.is-failed text {
   fill: #991b1b;
 }
 
+.dark .pipeline-graph-node.is-failed text {
+  fill: #fca5a5;
+}
+
 /* Unified diff viewer */
 .diff-content {
-  @apply m-0 overflow-auto rounded-lg border border-gray-200 bg-gray-900 p-0;
+  @apply m-0 overflow-auto rounded-lg border border-gray-200 bg-gray-900 p-0 dark:border-gray-700;
 }
 
 .diff-line {
@@ -111,13 +148,13 @@
 
 /* Report markdown */
 .report-markdown {
-  @apply mt-5 rounded-xl border border-gray-200 bg-gray-50 p-5 leading-relaxed;
+  @apply mt-5 rounded-xl border border-gray-200 bg-gray-50 p-5 leading-relaxed dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100;
 }
 
 .report-markdown h1,
 .report-markdown h2,
 .report-markdown h3 {
-  @apply my-2 mb-1;
+  @apply my-2 mb-1 text-gray-900 dark:text-white;
 }
 
 .report-markdown h1:first-child,
@@ -136,5 +173,5 @@
 }
 
 .mono-text {
-  @apply break-all font-mono text-sm text-gray-600;
+  @apply break-all font-mono text-sm text-gray-600 dark:text-gray-400;
 }

@@ -7,6 +7,7 @@ import {
   ProjectsIcon,
   SettingsIcon,
 } from "@/components/common/SidebarNavIcons";
+import { ThemeToggle } from "@/components/common/ThemeToggle";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { HealthStatus } from "@/components/HealthStatus";
@@ -23,7 +24,8 @@ const NAV_ITEMS = [
 
 const sidebarTheme = {
   root: {
-    inner: "flex h-full flex-col overflow-y-auto bg-gray-900 px-3 py-4",
+    inner:
+      "flex h-full flex-col overflow-y-auto bg-gray-900 px-3 py-4 dark:bg-gray-950",
   },
   itemGroup: {
     base: "mt-4 space-y-1 first:mt-0",
@@ -37,7 +39,7 @@ export function AppLayout() {
   const clearSession = useAuthStore((state) => state.clearSession);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
       {sidebarOpen ? (
         <Sidebar
           aria-label="CodeThera sidebar"
@@ -61,9 +63,10 @@ export function AppLayout() {
                       to={item.to}
                       end={item.end}
                       className={({ isActive }) =>
-                        `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${isActive
-                          ? "bg-gray-700 text-white"
-                          : "text-gray-300 hover:bg-gray-700 hover:text-white"
+                        `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                          isActive
+                            ? "bg-gray-700 text-white"
+                            : "text-gray-300 hover:bg-gray-700 hover:text-white"
                         }`
                       }
                     >
@@ -82,12 +85,16 @@ export function AppLayout() {
       ) : null}
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <Navbar fluid className="shrink-0 border-b border-gray-200 bg-white">
+        <Navbar
+          fluid
+          className="shrink-0 border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
+        >
           <div className="flex w-full items-center justify-between">
             <Button color="light" size="sm" onClick={toggleSidebar} aria-label="Toggle menu">
               <MenuIcon />
             </Button>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
               <UserAvatar fullName={user?.full_name} email={user?.email} />
               <Button color="light" size="sm" onClick={clearSession}>
                 Sign out

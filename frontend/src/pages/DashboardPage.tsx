@@ -67,22 +67,22 @@ export function DashboardPage() {
 
       <div className="mb-6 grid gap-4 sm:grid-cols-3">
         <Card>
-          <p className="text-sm text-gray-500">Projects</p>
-          <p className="text-3xl font-bold text-gray-900">{projects?.length ?? 0}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Projects</p>
+          <p className="text-3xl font-bold text-gray-900 dark:text-white">{projects?.length ?? 0}</p>
         </Card>
         <Card>
-          <p className="text-sm text-gray-500">Active runs</p>
-          <p className="text-3xl font-bold text-gray-900">{activeRuns}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Active runs</p>
+          <p className="text-3xl font-bold text-gray-900 dark:text-white">{activeRuns}</p>
         </Card>
         <Card>
-          <p className="text-sm text-gray-500">Recent runs</p>
-          <p className="text-3xl font-bold text-gray-900">{recentRuns?.length ?? 0}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Recent runs</p>
+          <p className="text-3xl font-bold text-gray-900 dark:text-white">{recentRuns?.length ?? 0}</p>
         </Card>
       </div>
 
       <Card>
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Recent runs</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent runs</h2>
           <Link to="/projects" className="text-sm font-medium text-blue-600 hover:underline">
             View projects
           </Link>

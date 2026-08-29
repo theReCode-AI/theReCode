@@ -33,7 +33,7 @@ export function RunDiffPage() {
   if (attemptsWithDiff.length === 0) {
     return (
       <Card>
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Code changes</h2>
+        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Code changes</h2>
         <EmptyState message="No diff artifacts available yet." />
       </Card>
     );
@@ -41,7 +41,7 @@ export function RunDiffPage() {
 
   return (
     <Card>
-      <h2 className="mb-4 text-lg font-semibold text-gray-900">Code changes</h2>
+      <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Code changes</h2>
       <div className="grid gap-4 lg:grid-cols-[260px_1fr]">
         <aside className="flex flex-col gap-2">
           {attemptsWithDiff.map((attempt) => (
@@ -51,13 +51,13 @@ export function RunDiffPage() {
               className={`rounded-xl border p-3 text-left transition ${
                 attempt.fix_attempt_id === selectedAttemptId
                   ? "border-blue-600 bg-blue-50"
-                  : "border-gray-200 bg-gray-50 hover:border-gray-300"
+                  : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 hover:border-gray-300"
               }`}
               onClick={() => setSelectedAttemptId(attempt.fix_attempt_id)}
             >
-              <strong className="block text-gray-900">Attempt {attempt.attempt_number}</strong>
-              <span className="text-sm text-gray-600">{attempt.status}</span>
-              <small className="mt-1 block text-xs text-gray-500">
+              <strong className="block text-gray-900 dark:text-white">Attempt {attempt.attempt_number}</strong>
+              <span className="text-sm text-gray-600 dark:text-gray-400">{attempt.status}</span>
+              <small className="mt-1 block text-xs text-gray-500 dark:text-gray-400">
                 {attempt.changed_files.join(", ") || "No files"}
               </small>
             </button>

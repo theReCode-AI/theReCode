@@ -74,22 +74,22 @@ export function SettingsPage() {
       />
 
       <Card className="mb-4">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">Account</h2>
+        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Account</h2>
         <dl className="grid gap-3 text-sm">
           <div>
-            <dt className="text-gray-500">Name</dt>
-            <dd className="font-medium text-gray-900">{user?.full_name}</dd>
+            <dt className="text-gray-500 dark:text-gray-400">Name</dt>
+            <dd className="font-medium text-gray-900 dark:text-white">{user?.full_name}</dd>
           </div>
           <div>
-            <dt className="text-gray-500">Email</dt>
-            <dd className="font-medium text-gray-900">{user?.email}</dd>
+            <dt className="text-gray-500 dark:text-gray-400">Email</dt>
+            <dd className="font-medium text-gray-900 dark:text-white">{user?.email}</dd>
           </div>
         </dl>
       </Card>
 
       <Card>
-        <h2 className="mb-2 text-lg font-semibold text-gray-900">Git credentials</h2>
-        <p className="mb-4 text-sm text-gray-500">
+        <h2 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">Git credentials</h2>
+        <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
           Save a GitHub or GitLab personal access token before cloning repositories or creating pull
           requests. Tokens are encrypted on the server and never shown again after saving.
         </p>
@@ -104,12 +104,12 @@ export function SettingsPage() {
             {credentialsQuery.data.map((credential) => (
               <li
                 key={credential.id}
-                className="flex items-center justify-between gap-4 rounded-lg border border-gray-200 bg-gray-50 p-3"
+                className="flex items-center justify-between gap-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3"
               >
                 <div>
-                  <strong className="text-gray-900">{credential.provider}</strong>
+                  <strong className="text-gray-900 dark:text-white">{credential.provider}</strong>
                   {credential.token_label ? ` · ${credential.token_label}` : ""}
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
                     Updated {formatDateTime(credential.updated_at)}
                   </div>
                 </div>

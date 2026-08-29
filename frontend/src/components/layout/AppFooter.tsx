@@ -4,7 +4,10 @@ export function AppFooter() {
   const year = new Date().getFullYear();
 
   return (
-    <Footer container className="shrink-0 rounded-none border-t border-gray-200 bg-white">
+    <Footer
+      container
+      className="shrink-0 rounded-none border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
+    >
       <FooterCopyright href="/dashboard" by="CodeThera™" year={year} />
       <FooterLinkGroup>
         <FooterLink href="https://www.linkedin.com/in/md-shariar-kabir/" target="_blank">

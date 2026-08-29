@@ -196,7 +196,7 @@ export function RunDetailPage() {
           completedStages={state?.completed_stages}
         />
         {state || approvalRequired || activeGraphLabel ? (
-          <p className="mt-4 text-sm text-gray-500">
+          <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
             {activeGraphLabel ? `Stage: ${activeGraphLabel}` : null}
             {state?.current_agent ? ` · Agent: ${state.current_agent}` : ""}
             {approvalRequired ? " · Approval required" : ""}
