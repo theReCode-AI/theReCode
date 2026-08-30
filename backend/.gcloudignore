@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+*.egg-info/
+dist/
+build/
+tests/
+
+# Include backend/app/.env in Cloud Build uploads (root .gitignore excludes .env).
+!.env
+!app/.env
