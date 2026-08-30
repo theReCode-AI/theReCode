@@ -41,14 +41,14 @@ def _patch_plan(run_id: str) -> PatchPlan:
     )
 
 
-def test_build_branch_name_uses_run_and_plan_slug() -> None:
+def test_build_branch_name_uses_fix_prefix_and_full_run_id() -> None:
     run_id = str(ObjectId())
     patch_plan = _patch_plan(run_id)
 
     branch_name = build_branch_name(run_id, [patch_plan])
 
-    assert branch_name.startswith(f"agent/{run_id[:12]}-")
-    assert "remove-unsafe-eval" in branch_name
+    assert branch_name == f"fix/{run_id}"
+    assert build_branch_name(run_id) == f"fix/{run_id}"
 
 
 def test_build_pull_request_description_includes_sections() -> None:

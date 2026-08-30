@@ -37,6 +37,15 @@ from app.services.run_service import RunService
 
 logger = get_logger(__name__)
 
+_GIT_FINALIZATION_ALLOWED_STATUSES = frozenset(
+    {
+        RunStatus.FINAL_REVIEW,
+        RunStatus.REPORTING,
+        RunStatus.COMPLETED,
+        RunStatus.FAILED,
+    },
+)
+
 GIT_OPERATIONS_ARTIFACT_NAME = "git_operations.json"
 
 
@@ -203,12 +212,20 @@ class GitFinalizationService:
         status: RunStatus,
         repository_id: str | None,
     ) -> None:
-        if status != RunStatus.FINAL_REVIEW:
+        if status not in _GIT_FINALIZATION_ALLOWED_STATUSES:
             raise RunNotReadyForGitFinalizationError(
-                "Run must be in FINAL_REVIEW before git finalization",
+                "Run must complete peer review before git finalization",
             )
         if repository_id is None:
             raise RunNotReadyForGitFinalizationError("Run has no linked repository")
+
+        existing_operations = self._git_operation_repository.list_by_run(run_id)
+        if any(
+            operation.status == GitOperationStatus.PR_CREATED for operation in existing_operations
+        ):
+            raise RunNotReadyForGitFinalizationError(
+                "A pull request has already been created for this run",
+            )
 
         pending_approvals = self._approval_repository.list_pending_by_run(run_id)
         if pending_approvals:

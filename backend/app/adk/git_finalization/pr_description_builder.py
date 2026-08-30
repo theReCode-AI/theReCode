@@ -50,12 +50,10 @@ def build_pull_request_description(context: PullRequestDescriptionContext) -> st
     return "\n\n".join(section for section in sections if section)
 
 
-def build_branch_name(run_id: str, patch_plans: list[PatchPlan]) -> str:
-    slug = "remediation"
-    if patch_plans:
-        primary = sorted(patch_plans, key=lambda plan: plan.priority_rank)[0]
-        slug = _slugify(primary.title)
-    return f"agent/{run_id[:12]}-{slug}"[:80]
+def build_branch_name(run_id: str, patch_plans: list[PatchPlan] | None = None) -> str:
+    """Branch for post-run push/PR: fix/<run_id>."""
+    _ = patch_plans
+    return f"fix/{run_id}"
 
 
 def _problem_section(patch_plans: list[PatchPlan]) -> str:
@@ -127,10 +125,3 @@ def _risk_section(patch_plans: list[PatchPlan]) -> str:
     return "\n".join(
         f"- {plan.title}: {plan.estimated_risk.value}" for plan in patch_plans[:5]
     )
-
-
-def _slugify(value: str) -> str:
-    slug = "".join(character.lower() if character.isalnum() else "-" for character in value)
-    while "--" in slug:
-        slug = slug.replace("--", "-")
-    return slug.strip("-")[:40] or "remediation"

@@ -147,6 +147,15 @@ export interface GitOperation {
   created_at: string;
 }
 
+export interface RunGitFinalizationResponse {
+  run_id: string;
+  started_at: string;
+  completed_at: string;
+  duration_ms: number;
+  operation: GitOperation;
+  run_status: string;
+}
+
 export interface RunReport {
   report_id: string;
   run_id: string;

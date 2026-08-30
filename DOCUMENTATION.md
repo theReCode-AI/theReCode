@@ -89,7 +89,7 @@ Live progress uses **Server-Sent Events** (`GET /api/v1/runs/{id}/stream`).
 - **Multi-agent peer review** — Security, Testing, Architecture + synthesizer
 - **Human approvals** — risk gate and final review cards
 - **Memory** — `project`, `decision`, `failure`, `success_strategy` for later planning
-- **Git finalization** — branch `agent/<run_id>-<short-description>`, push, open PR/MR
+- **Git finalization** — branch `fix/<run_id>`, push, open PR/MR
 - **Reports** — markdown + PDF run reports
 - **Dark/light theme** — Flowbite theme mode
 

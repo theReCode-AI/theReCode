@@ -125,7 +125,7 @@ def _seed_success_inputs(
     target.write_text("TOKEN = 'safe'\n", encoding="utf-8")
 
 
-def test_finalize_run_requires_final_review_status(git_finalization_stack) -> None:
+def test_finalize_run_requires_ready_status(git_finalization_stack) -> None:
     service, run_service, project_service, *_ = git_finalization_stack
     user_id = str(ObjectId())
     project = project_service.create_project(user_id, ProjectCreate(name="Git Finalize"))
@@ -133,6 +133,139 @@ def test_finalize_run_requires_final_review_status(git_finalization_stack) -> No
 
     with pytest.raises(RunNotReadyForGitFinalizationError):
         service.finalize_run(user_id, run.id)
+
+
+def test_finalize_run_allows_completed_status(git_finalization_stack, settings) -> None:
+    (
+        service,
+        run_service,
+        project_service,
+        workspace_manager,
+        run_repository,
+        fix_plan_repository,
+        fix_attempt_repository,
+        verification_result_repository,
+        peer_review_result_repository,
+        git_operation_repository,
+        event_repository,
+        provider_factory,
+        finalization_agent,
+        git_credential_service,
+    ) = git_finalization_stack
+
+    user_id = str(ObjectId())
+    git_credential_service.save_credential(
+        user_id,
+        GitCredentialCreate(provider="github", access_token="ghp_secret"),
+    )
+    project = project_service.create_project(user_id, ProjectCreate(name="Git Finalize"))
+    repository = project_service.create_repository(
+        user_id,
+        project.id,
+        RepositoryCreate(provider="github", full_name="org/repo"),
+    )
+    run = run_service.create_run(
+        user_id,
+        RunCreate(project_id=project.id, repository_id=repository.id),
+    )
+    run_repository.update_status(run.id, user_id, RunStatus.COMPLETED)
+
+    now = datetime.now(UTC)
+    patch_plan_id = str(ObjectId())
+    fix_attempt_id = str(ObjectId())
+    verification_result_id = str(ObjectId())
+    patch_plan = PatchPlan(
+        patch_plan_id=patch_plan_id,
+        run_id=run.id,
+        issue_group_id=str(ObjectId()),
+        title="Security issue",
+        root_cause="Unsafe eval usage",
+        affected_files=["src/auth.py"],
+        expected_modifications=[
+            ExpectedModification(
+                file="src/auth.py",
+                description="Remove eval",
+                change_type=ChangeType.SECURITY_REMEDIATION.value,
+            ),
+        ],
+        expected_tests=["uv run pytest"],
+        estimated_risk=RiskLevel.MEDIUM,
+        expected_scope=FixScope.SINGLE_FILE,
+        solution_rationale="Replace eval",
+        rollback_strategy="Revert file",
+        priority_rank=1,
+        status=PatchPlanStatus.READY,
+        created_at=now,
+    )
+    fix_plan_repository.replace_for_run(run.id, [patch_plan])
+    fix_attempt_repository.add(
+        FixAttempt(
+            fix_attempt_id=fix_attempt_id,
+            run_id=run.id,
+            patch_plan_id=patch_plan_id,
+            attempt_number=1,
+            status=FixAttemptStatus.APPLIED,
+            planned_files=["src/auth.py"],
+            changed_files=["src/auth.py"],
+            created_at=now,
+        ),
+    )
+    verification_result_repository.add(
+        VerificationResult(
+            verification_result_id=verification_result_id,
+            run_id=run.id,
+            fix_attempt_id=fix_attempt_id,
+            patch_plan_id=patch_plan_id,
+            status=VerificationStatus.PASSED,
+            created_at=now,
+        ),
+    )
+    peer_review_result_repository.add(
+        PeerReviewResult(
+            peer_review_id=str(ObjectId()),
+            run_id=run.id,
+            patch_plan_id=patch_plan_id,
+            fix_attempt_id=fix_attempt_id,
+            verification_result_id=verification_result_id,
+            regression_test_id=str(ObjectId()),
+            verdict=PeerReviewVerdict.APPROVED,
+            synthesis_summary="Approved",
+            reviewer_opinions=[],
+            created_at=now,
+        ),
+    )
+    _seed_success_inputs(
+        workspace_manager,
+        run.id,
+        patch_plan_id,
+        fix_attempt_id,
+        verification_result_id,
+    )
+
+    mock_provider = MagicMock()
+    mock_provider.validate_repository.return_value = RepositoryValidationResult(
+        valid=True,
+        provider="github",
+        full_name="org/repo",
+        default_branch="main",
+        clone_url="https://github.com/org/repo.git",
+    )
+    provider_factory.get_provider.return_value = mock_provider
+    finalization_agent.finalize.return_value = GitFinalizationResult(
+        status=GitOperationStatus.PR_CREATED,
+        branch_name="fix/run-1",
+        base_branch="main",
+        commit_sha="abc123",
+        push_commit_sha="abc123",
+        pull_request_url="https://github.com/org/repo/pull/1",
+        pull_request_number=1,
+        title="theReCode: Security issue",
+        description="PR body",
+    )
+
+    response = service.finalize_run(user_id, run.id)
+
+    assert response.operation.status == GitOperationStatus.PR_CREATED
 
 
 def test_finalize_run_persists_pr_operation(git_finalization_stack, settings) -> None:

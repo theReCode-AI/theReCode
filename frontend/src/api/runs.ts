@@ -10,6 +10,7 @@ import type {
   Run,
   RunAgentState,
   RunCreate,
+  RunGitFinalizationResponse,
   RunReport,
   VerificationResult,
 } from "@/types/run";
@@ -182,6 +183,18 @@ export async function executeRun(
   return apiPost<RunOrchestrationResponse>(
     `/runs/${runId}/execute`,
     options ?? {},
+    token,
+  );
+}
+
+export async function finalizeRunGit(
+  runId: string,
+  token: string,
+  baseBranch?: string,
+): Promise<RunGitFinalizationResponse> {
+  return apiPost<RunGitFinalizationResponse>(
+    `/runs/${runId}/git/finalize`,
+    baseBranch ? { base_branch: baseBranch } : {},
     token,
   );
 }

@@ -208,7 +208,7 @@ Run status: `COMPLETED` after successful report generation
 Artifact: `baseline/git_operations.json`  
 Per-operation artifacts: `baseline/git/<git_operation_id>/operation.json`  
 MongoDB collection: `git_operations`  
-Branch pattern: `agent/<run_id>-<short-description>`  
+Branch pattern: `fix/<run_id>`  
 Run status: `REPORTING` on success; `FAILED` on git errors
 
 ### Phase 20 API
