@@ -10,7 +10,7 @@ from app.services.auth_service import AuthService
 
 @pytest.mark.integration
 def test_auth_flow_with_mongodb() -> None:
-    settings = Settings(mongodb_database_name="codethera_auth_test")
+    settings = Settings(mongodb_database_name="therecode_auth_test")
     manager = MongoDBManager(settings)
 
     try:

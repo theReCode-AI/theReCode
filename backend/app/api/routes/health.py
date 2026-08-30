@@ -10,7 +10,7 @@ router = APIRouter()
 @router.get("", response_model=HealthResponse)
 async def liveness() -> HealthResponse:
     """Return service liveness status."""
-    return HealthResponse(status="ok", service="codethera-backend")
+    return HealthResponse(status="ok", service="therecode-backend")
 
 
 @router.get(

@@ -37,21 +37,21 @@ RUN apt-get update \
         /usr/local/bin/osv-scanner \
         /usr/local/bin/gitleaks \
     && rm -rf /var/lib/apt/lists/* \
-    && groupadd --system codethera \
-    && useradd --system --gid codethera codethera \
+    && groupadd --system therecode \
+    && useradd --system --gid therecode therecode \
     && mkdir -p /workspace/runs \
-    && chown -R codethera:codethera /workspace
+    && chown -R therecode:therecode /workspace
 
 COPY --from=builder /app /app
-RUN chown -R codethera:codethera /app /workspace
+RUN chown -R therecode:therecode /app /workspace
 
 ENV PATH="/app/.venv/bin:/usr/local/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
-ENV CODETHERA_WORKSPACE_ROOT=/workspace
-ENV CODETHERA_HOST=0.0.0.0
-ENV CODETHERA_PORT=8000
+ENV THERECODE_WORKSPACE_ROOT=/workspace
+ENV THERECODE_HOST=0.0.0.0
+ENV THERECODE_PORT=8000
 
-USER codethera
+USER therecode
 
 EXPOSE 8000
 

@@ -14,7 +14,7 @@ gcloud builds submit ./backend \
 #
 # gcloud run services update harpic-cursor-v1 \
 #   --region europe-north1 \
-#   --set-env-vars "CODETHERA_MONGODB_URI=mongodb+srv://USER:PASS@CLUSTER/codethera?retryWrites=true&w=majority,CODETHERA_WORKSPACE_ROOT=/workspace,CODETHERA_ENVIRONMENT=production"
+#   --set-env-vars "THERECODE_MONGODB_URI=mongodb+srv://USER:PASS@CLUSTER/therecode?retryWrites=true&w=majority,THERECODE_WORKSPACE_ROOT=/workspace,THERECODE_ENVIRONMENT=production"
 
 # ---------- Frontend (Cloud Run) ----------
 # Image is static nginx only (no proxy to "backend" hostname — that crashes nginx on Cloud Run).

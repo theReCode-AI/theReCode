@@ -1,5 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Card, Label, Select, Table, TableBody, TableCell, TableHead, TableHeadCell, TableRow, TextInput } from "flowbite-react";
+import {
+  Button,
+  ButtonGroup,
+  Card,
+  Label,
+  Select,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeadCell,
+  TableRow,
+  TextInput,
+} from "flowbite-react";
 import { FormEvent, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
@@ -18,11 +31,20 @@ import { useAuthStore } from "@/stores/authStore";
 import type { GitProvider } from "@/types/project";
 import { formatDateTime } from "@/utils/runStages";
 
+type ProjectWorkspaceTab = "link" | "start-run" | "linked";
+
+const WORKSPACE_TABS: { id: ProjectWorkspaceTab; label: string }[] = [
+  { id: "link", label: "Link repository" },
+  { id: "start-run", label: "Start run" },
+  { id: "linked", label: "Linked repositories" },
+];
+
 export function ProjectDetailPage() {
   const { projectId = "" } = useParams();
   const token = useAuthStore((state) => state.token);
   const queryClient = useQueryClient();
 
+  const [activeTab, setActiveTab] = useState<ProjectWorkspaceTab>("link");
   const [provider, setProvider] = useState<GitProvider>("github");
   const [fullName, setFullName] = useState("");
   const [defaultBranch, setDefaultBranch] = useState("main");
@@ -56,6 +78,7 @@ export function ProjectDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["repositories", projectId] });
       setFullName("");
+      setActiveTab("linked");
     },
   });
 
@@ -102,92 +125,128 @@ export function ProjectDetailPage() {
         }
       />
 
-      <Card className="mb-4 w-full">
-        <form onSubmit={handleRepositorySubmit}>
-          <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Link repository</h2>
-          <div className="mb-4 grid gap-4 sm:grid-cols-3">
-            <div>
-              <Label htmlFor="provider">Provider</Label>
+        <ButtonGroup
+        outline
+        className="mb-0 flex-wrap rounded-lg border border-gray-300 shadow-sm dark:border-gray-600 w-full !rounded-bl-none !rounded-br-none"
+        data-testid="project-workspace-tabs "
+      >
+        {WORKSPACE_TABS.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <Button
+              key={tab.id}
+              type="button"
+              color={isActive ? "blue" : "gray"}
+              outline={!isActive}
+              onClick={() => setActiveTab(tab.id)}
+              className={`inline-flex items-center gap-2 w-1/3  !rounded-bl-none !rounded-br-none${
+                isActive
+                  ? "border border-blue-600"
+                  : "border border-gray-300 bg-white text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+              }`}
+            >
+              {tab.label}
+            </Button>
+          );
+        })}
+      </ButtonGroup>
+
+      <Card className="mb-4 w-full !rounded-tl-none !rounded-tr-none">
+        {activeTab === "link" ? (
+          <form onSubmit={handleRepositorySubmit}>
+            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+              Link repository
+            </h2>
+            <div className="mb-4 grid gap-4 sm:grid-cols-3">
+              <div>
+                <Label htmlFor="provider">Provider</Label>
+                <Select
+                  id="provider"
+                  value={provider}
+                  onChange={(event) => setProvider(event.target.value as GitProvider)}
+                >
+                  <option value="github">GitHub</option>
+                  <option value="gitlab">GitLab</option>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="fullName">Repository</Label>
+                <TextInput
+                  id="fullName"
+                  placeholder="owner/repo or https://github.com/owner/repo"
+                  value={fullName}
+                  onChange={(event) => setFullName(event.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="defaultBranch">Default branch</Label>
+                <TextInput
+                  id="defaultBranch"
+                  value={defaultBranch}
+                  onChange={(event) => setDefaultBranch(event.target.value)}
+                  required
+                />
+              </div>
+            </div>
+            <Button type="submit" disabled={createRepositoryMutation.isPending}>
+              {createRepositoryMutation.isPending ? "Linking..." : "Link repository"}
+            </Button>
+          </form>
+        ) : null}
+
+        {activeTab === "start-run" ? (
+          <div>
+            <h2 className="mb-1 text-lg font-semibold text-gray-900 dark:text-white">Start run</h2>
+            <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+              Select a linked repository, then create a run. Open the run and use{" "}
+              <strong>Clone repository</strong> on the Overview tab to pull the code. Save your Git
+              token under Settings first.
+            </p>
+            <div className="mb-4 w-full xsm:max-w-xl">
+              <Label htmlFor="repository">Repository</Label>
               <Select
-                id="provider"
-                value={provider}
-                onChange={(event) => setProvider(event.target.value as GitProvider)}
+                id="repository"
+                value={selectedRepositoryId}
+                onChange={(event) => setSelectedRepositoryId(event.target.value)}
               >
-                <option value="github">GitHub</option>
-                <option value="gitlab">GitLab</option>
+                <option value="">No repository selected</option>
+                {repositories.map((repository) => (
+                  <option key={repository.id} value={repository.id}>
+                    {repository.full_name} ({repository.default_branch})
+                  </option>
+                ))}
               </Select>
             </div>
-            <div>
-              <Label htmlFor="fullName">Repository</Label>
-              <TextInput
-                id="fullName"
-                placeholder="owner/repo or https://github.com/owner/repo"
-                value={fullName}
-                onChange={(event) => setFullName(event.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="defaultBranch">Default branch</Label>
-              <TextInput
-                id="defaultBranch"
-                value={defaultBranch}
-                onChange={(event) => setDefaultBranch(event.target.value)}
-                required
-              />
-            </div>
+            <Button
+              type="button"
+              disabled={createRunMutation.isPending || !selectedRepositoryId}
+              onClick={() => createRunMutation.mutate()}
+            >
+              {createRunMutation.isPending ? "Creating run..." : "Create run"}
+            </Button>
           </div>
-          <Button type="submit" disabled={createRepositoryMutation.isPending}>
-            {createRepositoryMutation.isPending ? "Linking..." : "Link repository"}
-          </Button>
-        </form>
-      </Card>
+        ) : null}
 
-      <Card className="mb-4 w-full">
-        <h2 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">Start run</h2>
-        <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-          Select a linked repository, then create a run. Open the run and use{" "}
-          <strong>Clone repository</strong> on the Overview tab to pull the code. Save your Git token
-          under Settings first.
-        </p>
-        <div className="mb-4 w-full sm:max-w-xl">
-          <Label htmlFor="repository">Repository</Label>
-          <Select
-            id="repository"
-            value={selectedRepositoryId}
-            onChange={(event) => setSelectedRepositoryId(event.target.value)}
-          >
-            <option value="">No repository selected</option>
-            {repositories.map((repository) => (
-              <option key={repository.id} value={repository.id}>
-                {repository.full_name} ({repository.default_branch})
-              </option>
-            ))}
-          </Select>
-        </div>
-        <Button
-          type="button"
-          disabled={createRunMutation.isPending || !selectedRepositoryId}
-          onClick={() => createRunMutation.mutate()}
-        >
-          {createRunMutation.isPending ? "Creating run..." : "Create run"}
-        </Button>
-      </Card>
-
-      <Card className="mb-4 w-full">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Linked repositories</h2>
-        {repositories.length === 0 ? (
-          <EmptyState message="No repositories linked yet." />
-        ) : (
-          <ul className="list-disc space-y-2 pl-5 text-sm text-gray-700 dark:text-gray-300">
-            {repositories.map((repository) => (
-              <li key={repository.id}>
-                <strong>{repository.full_name}</strong> · {repository.provider} ·{" "}
-                {repository.default_branch}
-              </li>
-            ))}
-          </ul>
-        )}
+        {activeTab === "linked" ? (
+          <div>
+            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
+              Linked repositories
+            </h2>
+            {repositories.length === 0 ? (
+              <EmptyState message="No repositories linked yet." />
+            ) : (
+              <ul className="list-disc space-y-2 pl-5 text-sm text-gray-700 dark:text-gray-300">
+                {repositories.map((repository) => (
+                  <li key={repository.id}>
+                    <strong>{repository.full_name}</strong> · {repository.provider} ·{" "}
+                    {repository.default_branch}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : null}
       </Card>
 
       <Card className="w-full">
@@ -209,7 +268,10 @@ export function ProjectDetailPage() {
                 {runs.map((run) => (
                   <TableRow key={run.id}>
                     <TableCell>
-                      <Link to={`/runs/${run.id}`} className="font-medium text-blue-600 hover:underline">
+                      <Link
+                        to={`/runs/${run.id}`}
+                        className="font-medium text-blue-600 hover:underline"
+                      >
                         {run.id.slice(-8)}
                       </Link>
                     </TableCell>
@@ -219,7 +281,10 @@ export function ProjectDetailPage() {
                     <TableCell>{formatDateTime(run.created_at)}</TableCell>
                     <TableCell>
                       {["COMPLETED", "REPORTING"].includes(run.status) ? (
-                        <Link to={`/runs/${run.id}/reports`} className="text-sm font-medium text-blue-600 hover:underline">
+                        <Link
+                          to={`/runs/${run.id}/reports`}
+                          className="text-sm font-medium text-blue-600 hover:underline"
+                        >
                           View report
                         </Link>
                       ) : (

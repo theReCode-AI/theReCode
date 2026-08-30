@@ -99,7 +99,7 @@ class GitFinalizationEngine:
             )
 
         title = build_pull_request_title(context.patch_plans, context.run_id)
-        commit_message = f"{title}\n\nAutomated remediation by CodeThera."
+        commit_message = f"{title}\n\nAutomated remediation by theReCode."
         commit_result = self._local_git.commit(git_root, commit_message)
         if not commit_result.success:
             return GitFinalizationResult(

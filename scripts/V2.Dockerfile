@@ -30,20 +30,20 @@ RUN apt-get update \
         | tar -xz -C /usr/local/bin gitleaks \
     && chmod +x /usr/local/bin/osv-scanner /usr/local/bin/gitleaks \
     && rm -rf /var/lib/apt/lists/* \
-    && groupadd --system codethera \
-    && useradd --system --gid codethera codethera \
+    && groupadd --system therecode \
+    && useradd --system --gid therecode therecode \
     && mkdir -p /workspace/runs \
-    && chown -R codethera:codethera /workspace
+    && chown -R therecode:therecode /workspace
 
 COPY --from=builder /app /app
 COPY .env ./.env
-RUN chown codethera:codethera ./.env
+RUN chown therecode:therecode ./.env
 
 ENV PATH="/app/.venv/bin:/usr/local/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
-ENV CODETHERA_WORKSPACE_ROOT=/workspace
+ENV THERECODE_WORKSPACE_ROOT=/workspace
 
-USER codethera
+USER therecode
 
 EXPOSE 8000
 

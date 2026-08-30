@@ -1,14 +1,14 @@
-# CodeThera
+# theReCode
 
 Autonomous AI software-engineering platform for Python repositories on GitHub and GitLab.
 
-CodeThera analyzes repositories, runs diagnostics, plans and applies fixes, verifies changes, performs peer review, and opens pull/merge requests — behaving like an autonomous software engineer rather than a chatbot.
+theReCode analyzes repositories, runs diagnostics, plans and applies fixes, verifies changes, performs peer review, and opens pull/merge requests — behaving like an autonomous software engineer rather than a chatbot.
 
 | Item | Value |
 |------|-------|
-| Product | CodeThera |
+| Product | theReCode |
 | Backend version | `0.1.0` |
-| License | Proprietary — CodeThera |
+| License | Proprietary — theReCode |
 | API base | `/api/v1` |
 
 ---
@@ -28,7 +28,7 @@ Teams need an autonomous system that can operate on real repositories with polic
 
 ## Solution
 
-CodeThera is a **monorepo platform** that runs a deterministic multi-stage pipeline over a cloned repository, with Gemini-backed specialist agents where planning, coding, and peer review benefit from LLM reasoning.
+theReCode is a **monorepo platform** that runs a deterministic multi-stage pipeline over a cloned repository, with Gemini-backed specialist agents where planning, coding, and peer review benefit from LLM reasoning.
 
 ```
 Create project → Link GitHub/GitLab repo → Save encrypted Git token
@@ -47,7 +47,7 @@ workspace/   Runtime clones and per-run artifacts
 **Persistence model**
 
 - **MongoDB** — users, projects, runs, findings, plans, approvals, memories, reports, etc.
-- **Filesystem workspace** — clone, patches, diffs, baseline JSON, markdown/PDF reports under `CODETHERA_WORKSPACE_ROOT`
+- **Filesystem workspace** — clone, patches, diffs, baseline JSON, markdown/PDF reports under `THERECODE_WORKSPACE_ROOT`
 
 **Primary orchestration entrypoint**
 
@@ -161,7 +161,7 @@ frontend/src/
 
 1. Authenticate (JWT).
 2. Create project, link repository, store Git credential.
-3. Create run → workspace paths under `CODETHERA_WORKSPACE_ROOT`.
+3. Create run → workspace paths under `THERECODE_WORKSPACE_ROOT`.
 4. `POST .../execute` → ADK Runner walks workflow nodes.
 5. Deterministic stages write Mongo + disk artifacts; Gemini specialists call typed FunctionTools.
 6. UI subscribes via SSE (`snapshot`, `run_update`, `state_update`, `agent_event`, `heartbeat`, `complete`).
@@ -182,8 +182,8 @@ Built in `backend/app/google_adk/workflow_builder.py`:
 
 | Workflow | Purpose |
 |----------|---------|
-| `codethera_autonomous_run` | Full pipeline from initialize through finalize |
-| `codethera_post_risk_approval_run` | Resume after risk-gate human approval (from code fix onward) |
+| `therecode_autonomous_run` | Full pipeline from initialize through finalize |
+| `therecode_post_risk_approval_run` | Resume after risk-gate human approval (from code fix onward) |
 
 ### Stage types
 
@@ -208,7 +208,7 @@ Python packages under `backend/app/adk/` implement diagnostic agents, correlatio
 
 ### Sessions
 
-- ADK app name: `CODETHERA_GOOGLE_ADK_APP_NAME` (default `codethera`)
+- ADK app name: `THERECODE_GOOGLE_ADK_APP_NAME` (default `therecode`)
 - Session service: **in-memory** (`InMemorySessionService`), `session_id = run_id`
 - Not durable across process restarts
 
@@ -229,7 +229,7 @@ Python packages under `backend/app/adk/` implement diagnostic agents, correlatio
 |-----------|-------|
 | FastAPI | HTTP API |
 | Uvicorn | ASGI server |
-| Pydantic / pydantic-settings | Config & schemas (`CODETHERA_` prefix) |
+| Pydantic / pydantic-settings | Config & schemas (`THERECODE_` prefix) |
 | PyMongo | MongoDB driver |
 | PyJWT + bcrypt | Auth |
 | Cryptography | Git credential encryption |
@@ -260,13 +260,13 @@ Docker Mongo image: **`mongo:7`**. Backend runtime image: Python **3.12** slim +
 
 ## Gemini Integration
 
-CodeThera uses the **Gemini Developer API** (AI Studio), not Vertex AI by default.
+theReCode uses the **Gemini Developer API** (AI Studio), not Vertex AI by default.
 
 | Setting | Role |
 |---------|------|
-| `CODETHERA_GOOGLE_API_KEY` | API key ([AI Studio](https://aistudio.google.com/apikey)); also accepted as `GOOGLE_API_KEY` |
-| `CODETHERA_GOOGLE_GENAI_USE_VERTEXAI` | Must be `false` for API-key mode |
-| `CODETHERA_GEMINI_MODEL` | Model id (example/env: `gemini-2.5-flash`; code default may differ — set explicitly in env) |
+| `THERECODE_GOOGLE_API_KEY` | API key ([AI Studio](https://aistudio.google.com/apikey)); also accepted as `GOOGLE_API_KEY` |
+| `THERECODE_GOOGLE_GENAI_USE_VERTEXAI` | Must be `false` for API-key mode |
+| `THERECODE_GEMINI_MODEL` | Model id (example/env: `gemini-2.5-flash`; code default may differ — set explicitly in env) |
 
 Bootstrap:
 
@@ -343,7 +343,7 @@ Compose vs Cloud Run:
 
 ```bash
 cp .env.example .env
-# Edit: CODETHERA_GOOGLE_API_KEY, JWT/encryption secrets, Mongo URI if needed
+# Edit: THERECODE_GOOGLE_API_KEY, JWT/encryption secrets, Mongo URI if needed
 ```
 
 Backend also reads `backend/app/.env` for runtime settings used in Docker/Cloud images.
@@ -377,7 +377,7 @@ uv run uvicorn app.main:app --reload --port 8000
 ```
 
 - API: http://localhost:8000  
-- OpenAPI: http://localhost:8000/docs (disabled when `CODETHERA_ENVIRONMENT=production`)
+- OpenAPI: http://localhost:8000/docs (disabled when `THERECODE_ENVIRONMENT=production`)
 
 ### Frontend
 
@@ -425,7 +425,7 @@ Commands below match `deploy.txt` patterns (substitute your project, region, and
 gcloud artifacts repositories create harpic-cursor-v1 \
   --repository-format=docker \
   --location=europe-north1 \
-  --description="CodeThera" \
+  --description="theReCode" \
   --immutable-tags \
   --async
 ```
@@ -443,7 +443,7 @@ Configure Cloud Run service env (example):
 ```bash
 gcloud run services update SERVICE \
   --region REGION \
-  --set-env-vars "CODETHERA_MONGODB_URI=mongodb+srv://USER:PASS@CLUSTER/codethera?retryWrites=true&w=majority,CODETHERA_WORKSPACE_ROOT=/workspace,CODETHERA_ENVIRONMENT=production,CODETHERA_GOOGLE_API_KEY=YOUR_KEY,CODETHERA_GOOGLE_GENAI_USE_VERTEXAI=false,CODETHERA_GEMINI_MODEL=gemini-2.5-flash"
+  --set-env-vars "THERECODE_MONGODB_URI=mongodb+srv://USER:PASS@CLUSTER/therecode?retryWrites=true&w=majority,THERECODE_WORKSPACE_ROOT=/workspace,THERECODE_ENVIRONMENT=production,THERECODE_GOOGLE_API_KEY=YOUR_KEY,THERECODE_GOOGLE_GENAI_USE_VERTEXAI=false,THERECODE_GEMINI_MODEL=gemini-2.5-flash"
 ```
 
 Prefer Secret Manager for keys in production rather than baking `app/.env` long-term.
@@ -466,60 +466,60 @@ gcloud run deploy FRONTEND_SERVICE \
   --allow-unauthenticated
 ```
 
-Update backend `CODETHERA_CORS_ORIGINS` to include the frontend Cloud Run origin.
+Update backend `THERECODE_CORS_ORIGINS` to include the frontend Cloud Run origin.
 
 ---
 
 ## Environment Variables
 
-Prefix: **`CODETHERA_`** (pydantic-settings). Frontend uses **`VITE_`**.
+Prefix: **`THERECODE_`** (pydantic-settings). Frontend uses **`VITE_`**.
 
 ### Application
 
 | Variable | Description |
 |----------|-------------|
-| `CODETHERA_APP_NAME` | Display name |
-| `CODETHERA_ENVIRONMENT` | `development` \| `staging` \| `production` \| `test` |
-| `CODETHERA_API_PREFIX` | Default `/api/v1` |
-| `CODETHERA_HOST` / `CODETHERA_PORT` | Bind address |
-| `CODETHERA_CORS_ORIGINS` | Comma-separated allowed origins |
-| `CODETHERA_WORKSPACE_ROOT` | Clone/artifact root (`../workspace` local, `/workspace` containers) |
-| `CODETHERA_LOG_LEVEL` | e.g. `INFO` |
-| `CODETHERA_LOG_FORMAT` | `text` \| `json` |
+| `THERECODE_APP_NAME` | Display name |
+| `THERECODE_ENVIRONMENT` | `development` \| `staging` \| `production` \| `test` |
+| `THERECODE_API_PREFIX` | Default `/api/v1` |
+| `THERECODE_HOST` / `THERECODE_PORT` | Bind address |
+| `THERECODE_CORS_ORIGINS` | Comma-separated allowed origins |
+| `THERECODE_WORKSPACE_ROOT` | Clone/artifact root (`../workspace` local, `/workspace` containers) |
+| `THERECODE_LOG_LEVEL` | e.g. `INFO` |
+| `THERECODE_LOG_FORMAT` | `text` \| `json` |
 
 ### MongoDB
 
 | Variable | Description |
 |----------|-------------|
-| `CODETHERA_MONGODB_URI` | Connection string |
-| `CODETHERA_MONGODB_DATABASE_NAME` | Default `codethera` |
-| `CODETHERA_MONGODB_SERVER_SELECTION_TIMEOUT_MS` | Default `5000` |
-| `CODETHERA_MONGODB_CONNECT_TIMEOUT_MS` | Default `5000` |
+| `THERECODE_MONGODB_URI` | Connection string |
+| `THERECODE_MONGODB_DATABASE_NAME` | Default `therecode` |
+| `THERECODE_MONGODB_SERVER_SELECTION_TIMEOUT_MS` | Default `5000` |
+| `THERECODE_MONGODB_CONNECT_TIMEOUT_MS` | Default `5000` |
 
 ### Auth & credentials
 
 | Variable | Description |
 |----------|-------------|
-| `CODETHERA_JWT_SECRET_KEY` | JWT signing secret |
-| `CODETHERA_JWT_ALGORITHM` | Default `HS256` |
-| `CODETHERA_JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | Default `60` |
-| `CODETHERA_CREDENTIALS_ENCRYPTION_KEY` | Git token encryption key |
+| `THERECODE_JWT_SECRET_KEY` | JWT signing secret |
+| `THERECODE_JWT_ALGORITHM` | Default `HS256` |
+| `THERECODE_JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | Default `60` |
+| `THERECODE_CREDENTIALS_ENCRYPTION_KEY` | Git token encryption key |
 
 ### Git providers
 
 | Variable | Description |
 |----------|-------------|
-| `CODETHERA_GITHUB_API_BASE_URL` | Default `https://api.github.com` |
-| `CODETHERA_GITLAB_API_BASE_URL` | Default `https://gitlab.com/api/v4` |
+| `THERECODE_GITHUB_API_BASE_URL` | Default `https://api.github.com` |
+| `THERECODE_GITLAB_API_BASE_URL` | Default `https://gitlab.com/api/v4` |
 
 ### Gemini / ADK
 
 | Variable | Description |
 |----------|-------------|
-| `CODETHERA_GOOGLE_API_KEY` | Gemini API key |
-| `CODETHERA_GOOGLE_GENAI_USE_VERTEXAI` | `false` for AI Studio keys |
-| `CODETHERA_GEMINI_MODEL` | e.g. `gemini-2.5-flash` |
-| `CODETHERA_GOOGLE_ADK_APP_NAME` | Default `codethera` |
+| `THERECODE_GOOGLE_API_KEY` | Gemini API key |
+| `THERECODE_GOOGLE_GENAI_USE_VERTEXAI` | `false` for AI Studio keys |
+| `THERECODE_GEMINI_MODEL` | e.g. `gemini-2.5-flash` |
+| `THERECODE_GOOGLE_ADK_APP_NAME` | Default `therecode` |
 
 ### Frontend
 
@@ -617,8 +617,8 @@ Checks compose config, image builds, and health endpoints.
 4. **Gemini cost/latency** — specialist stages depend on external LLM availability and quotas.
 5. **Atlas networking** — misconfigured IP allow lists cause TLS/handshake failures from Cloud Run.
 6. **Frontend Cloud Run** — absolute `VITE_API_BASE_URL` required; compose-style nginx upstream `backend` is invalid on Cloud Run.
-7. **Production docs** — OpenAPI UI is disabled when `CODETHERA_ENVIRONMENT=production`.
-8. **Model id drift** — keep `CODETHERA_GEMINI_MODEL` explicit; example env and code defaults may differ.
+7. **Production docs** — OpenAPI UI is disabled when `THERECODE_ENVIRONMENT=production`.
+8. **Model id drift** — keep `THERECODE_GEMINI_MODEL` explicit; example env and code defaults may differ.
 9. **Single-tenant UX** — dashboard is per authenticated user; no multi-org RBAC productization yet.
 
 ---
@@ -637,7 +637,7 @@ Suggested next steps aligned with the current codebase and phase roadmap:
 | Secrets | Secret Manager / Workload Identity for Gemini and Mongo |
 | UX | Deeper run compare, bulk project ops, notification webhooks |
 | CI | Managed Cloud Build triggers + progressive delivery |
-| Vertex | Optional `CODETHERA_GOOGLE_GENAI_USE_VERTEXAI=true` path for enterprise |
+| Vertex | Optional `THERECODE_GOOGLE_GENAI_USE_VERTEXAI=true` path for enterprise |
 | Resilience | Stronger resume semantics after approval when workspace is gone |
 
 Historical implementation phases (1–25, 28, 29, 31) are tracked in `README.md`. **Phase 31 (Google ADK 2.0 + Gemini API)** is the current orchestration baseline; **Phase 29 (Cloud Run)** is supported via Dockerfiles and `deploy.txt`.
@@ -664,4 +664,4 @@ Full interactive schema: `/docs` in non-production environments.
 
 ## License
 
-Proprietary — CodeThera
+Proprietary — theReCode

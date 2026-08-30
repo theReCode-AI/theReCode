@@ -12,7 +12,7 @@ def isolated_manager() -> MongoDBManager:
     return MongoDBManager(
         Settings(
             mongodb_uri="mongodb://localhost:27017",
-            mongodb_database_name="codethera_test",
+            mongodb_database_name="therecode_test",
         )
     )
 

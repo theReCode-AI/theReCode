@@ -1709,7 +1709,7 @@ async def test_finalize_run_git_and_list_operations(runs_client: AsyncClient) ->
             push_commit_sha="abc123",
             pull_request_url="https://github.com/org/repo/pull/1",
             pull_request_number=1,
-            title="CodeThera: Security issue",
+            title="theReCode: Security issue",
             description="PR body",
         )
     )
@@ -1778,7 +1778,7 @@ async def test_generate_run_report_and_get_report(runs_client: AsyncClient) -> N
             commit_sha="abc123",
             pull_request_url="https://github.com/org/repo/pull/1",
             pull_request_number=1,
-            title="CodeThera: Security issue",
+            title="theReCode: Security issue",
             description="Body",
             changed_files=["src/auth.py"],
             created_at=now,

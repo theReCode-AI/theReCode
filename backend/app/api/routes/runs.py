@@ -158,7 +158,7 @@ def _gemini_rate_limit_http_exception(exc: BaseException) -> HTTPException | Non
                 detail=(
                     "Gemini API rate limit exceeded. Wait a minute and retry, check your "
                     "quota at https://aistudio.google.com/, or set "
-                    "CODETHERA_GEMINI_MODEL=gemini-2.5-flash in backend/app/.env."
+                    "THERECODE_GEMINI_MODEL=gemini-2.5-flash in backend/app/.env."
                 ),
             )
         current = current.__cause__

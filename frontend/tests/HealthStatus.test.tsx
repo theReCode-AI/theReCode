@@ -26,14 +26,14 @@ describe("HealthStatus", () => {
   it("shows healthy status when backend responds", async () => {
     vi.spyOn(client, "getHealth").mockResolvedValue({
       status: "ok",
-      service: "codethera-backend",
+      service: "therecode-backend",
     });
 
     renderWithQuery(<HealthStatus />);
 
     await waitFor(() => {
       expect(screen.getByTestId("health-status")).toHaveTextContent(
-        "Backend status: ok (codethera-backend)",
+        "Backend status: ok (therecode-backend)",
       );
     });
   });

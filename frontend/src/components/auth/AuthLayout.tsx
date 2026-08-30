@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { ThemeToggle } from "@/components/common/ThemeToggle";
 
-const HERO_IMAGE = "/codethera-hero.png";
+const HERO_IMAGE = "/therecode-hero.png";
 
 interface AuthLayoutProps {
   children: ReactNode;
@@ -31,7 +31,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
       <aside className="relative z-10 hidden w-1/2 flex-col items-center justify-center p-10 lg:flex">
         <img
           src={HERO_IMAGE}
-          alt="CodeThera — Diagnose, Heal, Improve"
+          alt="theReCode — Detect, Diagnose, Fix, Improve"
           className="max-h-[min(70vh,480px)] w-full max-w-2xl object-contain drop-shadow-2xl"
         />
       </aside>
@@ -39,7 +39,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
       <main className="relative z-10 flex w-full flex-col items-center justify-center px-6 py-12 lg:w-1/2">
         <div className="w-full max-w-md">
           <div className="mb-8 flex justify-center lg:hidden">
-            <img src={HERO_IMAGE} alt="CodeThera" className="h-28 w-auto max-w-full object-contain" />
+            <img src={HERO_IMAGE} alt="theReCode" className="h-32 w-auto max-w-full object-contain" />
           </div>
           {children}
         </div>

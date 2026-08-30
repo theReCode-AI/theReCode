@@ -10,7 +10,7 @@ async def test_liveness(client: AsyncClient) -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "ok"
-    assert data["service"] == "codethera-backend"
+    assert data["service"] == "therecode-backend"
 
 
 async def test_readiness_when_mongodb_connected(client: AsyncClient) -> None:
@@ -42,5 +42,5 @@ async def test_root(client: AsyncClient) -> None:
 
     assert response.status_code == 200
     data = response.json()
-    assert data["name"] == "CodeThera"
+    assert data["name"] == "theReCode"
     assert data["health"] == "/api/v1/health"

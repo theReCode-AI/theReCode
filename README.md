@@ -1,8 +1,8 @@
-# CodeThera
+# theReCode
 
 Autonomous AI software-engineering platform for Python repositories on GitHub and GitLab.
 
-CodeThera analyzes repositories, runs diagnostics, plans and applies fixes, verifies changes, performs peer review, and creates pull requests — behaving like an autonomous software engineer rather than a chatbot.
+theReCode analyzes repositories, runs diagnostics, plans and applies fixes, verifies changes, performs peer review, and creates pull requests — behaving like an autonomous software engineer rather than a chatbot.
 
 ## Monorepo Layout
 
@@ -146,9 +146,9 @@ npm run build
 
 - Package: `google-adk>=2.8` in `backend/pyproject.toml`
 - Config in `backend/app/.env`:
-  - `CODETHERA_GOOGLE_API_KEY` — Gemini API key from [AI Studio](https://aistudio.google.com/apikey)
-  - `CODETHERA_GOOGLE_GENAI_USE_VERTEXAI=false`
-  - `CODETHERA_GEMINI_MODEL=gemini-2.5-flash`
+  - `THERECODE_GOOGLE_API_KEY` — Gemini API key from [AI Studio](https://aistudio.google.com/apikey)
+  - `THERECODE_GOOGLE_GENAI_USE_VERTEXAI=false`
+  - `THERECODE_GEMINI_MODEL=gemini-2.5-flash`
 - `POST /api/v1/runs/{id}/execute` uses `GoogleAdkOrchestrator` + ADK `Workflow` graph
 - LLM agents: fix planner, code fix, peer review (Gemini + typed `FunctionTool`s)
 - Deterministic stages: clone, intelligence, diagnostics, correlate, risk, verify, etc.
@@ -303,4 +303,4 @@ Run status: `AWAITING_APPROVAL` when any plan requires approval; stays `PLANNING
 
 ## License
 
-Proprietary — CodeThera
+Proprietary — theReCode

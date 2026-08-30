@@ -18,7 +18,7 @@ class RunExecutionContext:
 
 
 _run_context: ContextVar[RunExecutionContext | None] = ContextVar(
-    "codethera_run_context",
+    "therecode_run_context",
     default=None,
 )
 

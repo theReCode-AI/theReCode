@@ -50,7 +50,7 @@ class ServiceContainer:
 
 
 _service_container: ContextVar[ServiceContainer | None] = ContextVar(
-    "codethera_service_container",
+    "therecode_service_container",
     default=None,
 )
 

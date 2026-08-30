@@ -259,7 +259,7 @@ def test_finalize_run_persists_pr_operation(git_finalization_stack, settings) ->
         push_commit_sha="abc123",
         pull_request_url="https://github.com/org/repo/pull/1",
         pull_request_number=1,
-        title="CodeThera: Security issue",
+        title="theReCode: Security issue",
         description="PR body",
     )
 

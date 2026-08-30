@@ -20,7 +20,7 @@ def get_database(
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=(
-                "MongoDB is unreachable. On Cloud Run, set CODETHERA_MONGODB_URI to your "
+                "MongoDB is unreachable. On Cloud Run, set THERECODE_MONGODB_URI to your "
                 "Atlas connection string and allow 0.0.0.0/0 in Atlas Network Access."
             ),
         ) from exc

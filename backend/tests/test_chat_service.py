@@ -99,6 +99,7 @@ def chat_service() -> ChatService:
     service = ChatService(
         settings=Settings(google_api_key="test-key", gemini_model="gemini-2.5-flash"),
         run_repository=run_repository,
+        run_service=MagicMock(),
         project_service=project_service,
         chat_message_repository=FakeChatMessageRepository(),  # type: ignore[arg-type]
         finding_repository=finding_repository,

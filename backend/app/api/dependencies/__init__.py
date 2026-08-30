@@ -682,6 +682,7 @@ def get_run_progress_stream_service(
 def get_chat_service(
     app_settings: Settings = Depends(get_settings),
     run_repository: RunRepository = Depends(get_run_repository),
+    run_service: RunService = Depends(get_run_service),
     project_service: ProjectService = Depends(get_project_service),
     chat_message_repository: ChatMessageRepository = Depends(get_chat_message_repository),
     finding_repository: FindingRepository = Depends(get_finding_repository),
@@ -691,6 +692,7 @@ def get_chat_service(
     return ChatService(
         settings=app_settings,
         run_repository=run_repository,
+        run_service=run_service,
         project_service=project_service,
         chat_message_repository=chat_message_repository,
         finding_repository=finding_repository,

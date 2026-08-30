@@ -89,7 +89,7 @@ def test_markdown_builder_includes_git_results() -> None:
         commit_sha="abc123",
         pull_request_url="https://github.com/org/repo/pull/1",
         pull_request_number=1,
-        title="CodeThera: Security issue",
+        title="theReCode: Security issue",
         description="Body",
         changed_files=["src/auth.py"],
         created_at=now,

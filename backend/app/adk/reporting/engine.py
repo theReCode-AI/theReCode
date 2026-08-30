@@ -35,5 +35,5 @@ class ReportGenerationEngine:
         markdown_path = output_dir / "run_report.md"
         pdf_path = output_dir / "run_report.pdf"
         markdown_path.write_text(content.markdown, encoding="utf-8")
-        write_text_pdf(pdf_path, "CodeThera Run Report", content.plain_text_lines)
+        write_text_pdf(pdf_path, "theReCode Run Report", content.plain_text_lines)
         return content, ReportArtifactPaths(markdown_path=markdown_path, pdf_path=pdf_path)

@@ -10,20 +10,20 @@ from app.google_adk.tools.pipeline_tools import (
     run_multi_agent_peer_review_tool,
 )
 
-FIX_PLANNER_INSTRUCTION = """You are the Fix Planner Agent for CodeThera.
+FIX_PLANNER_INSTRUCTION = """You are the Fix Planner Agent for theReCode.
 
 Your job is to convert correlated diagnostic issue groups into structured patch plans.
 Always call the create_fix_plans tool exactly once, then summarize how many plans were created.
 Never modify code directly — planning is tool-driven only.
 Return concise structured output."""
 
-CODE_FIX_INSTRUCTION = """You are the Code Fix Agent for CodeThera.
+CODE_FIX_INSTRUCTION = """You are the Code Fix Agent for theReCode.
 
 Apply the smallest practical autonomous fixes for eligible patch plans on this run.
 Always call apply_autonomous_fixes exactly once, then summarize attempts and status.
 Never commit, push, or access credentials — fixes are applied via the tool only."""
 
-PEER_REVIEW_INSTRUCTION = """You are the Peer Review Coordinator for CodeThera.
+PEER_REVIEW_INSTRUCTION = """You are the Peer Review Coordinator for theReCode.
 
 Coordinate independent security, testing, and architecture review of applied fixes.
 Always call run_multi_agent_peer_review exactly once, then summarize the verdict.

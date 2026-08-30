@@ -144,7 +144,7 @@ def compute_execution_duration_ms(
 
 def _header_section(context: ReportGenerationContext) -> str:
     return (
-        f"# CodeThera Run Report\n\n"
+        f"# theReCode Run Report\n\n"
         f"- Run ID: `{context.run.id}`\n"
         f"- Project: {context.project.name}\n"
         f"- Status: {context.run.status.value}\n"

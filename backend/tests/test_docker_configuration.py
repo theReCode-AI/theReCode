@@ -12,7 +12,7 @@ def test_docker_compose_defines_core_services() -> None:
 def test_backend_dockerfile_has_healthcheck_and_git() -> None:
     dockerfile = (REPO_ROOT / "backend" / "Dockerfile").read_text(encoding="utf-8")
     assert "git" in dockerfile
-    assert "CODETHERA_WORKSPACE_ROOT=/workspace" in dockerfile
+    assert "THERECODE_WORKSPACE_ROOT=/workspace" in dockerfile
     assert "--group scanners" in dockerfile
     assert "README.md" in dockerfile
     assert "COPY app ./app" in dockerfile

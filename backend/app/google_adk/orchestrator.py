@@ -22,7 +22,7 @@ from app.google_adk.container import (
 from app.google_adk.context import RunExecutionContext, clear_run_context, set_run_context
 from app.google_adk.errors import WorkflowPausedForApprovalError
 from app.google_adk.workflow_builder import (
-    build_codethera_workflow,
+    build_therecode_workflow,
     build_post_risk_approval_workflow,
 )
 from app.models.agent_event import AgentEventType
@@ -41,7 +41,7 @@ class GoogleAdkOrchestrationError(Exception):
 
 
 class GoogleAdkOrchestrator:
-    """Runs the full CodeThera lifecycle through a Google ADK 2.0 Workflow."""
+    """Runs the full theReCode lifecycle through a Google ADK 2.0 Workflow."""
 
     def __init__(
         self,
@@ -120,7 +120,7 @@ class GoogleAdkOrchestrator:
                 "Continue from code fixing through finalization."
             )
         else:
-            workflow = build_codethera_workflow(model=self._settings.gemini_model)
+            workflow = build_therecode_workflow(model=self._settings.gemini_model)
             prompt = (
                 "Execute the full autonomous software-engineering run for this repository. "
                 "Follow the workflow stages in order and use tools where required."

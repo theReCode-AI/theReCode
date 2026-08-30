@@ -14,11 +14,11 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=_APP_ENV_FILE,
         env_file_encoding="utf-8",
-        env_prefix="CODETHERA_",
+        env_prefix="THERECODE_",
         extra="ignore",
     )
 
-    app_name: str = "CodeThera"
+    app_name: str = "theReCode"
     environment: Literal["development", "staging", "production", "test"] = "development"
     api_prefix: str = "/api/v1"
     host: str = "0.0.0.0"
@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_format: Literal["json", "text"] = "text"
     mongodb_uri: str = "mongodb://localhost:27017"
-    mongodb_database_name: str = "codethera"
+    mongodb_database_name: str = "therecode"
     mongodb_server_selection_timeout_ms: int = 5000
     mongodb_connect_timeout_ms: int = 5000
     jwt_secret_key: str = "dev-secret-change-in-production"
@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     google_api_key: str = ""
     google_genai_use_vertexai: bool = False
     gemini_model: str = "gemini-3.6-flash"
-    google_adk_app_name: str = "codethera"
+    google_adk_app_name: str = "therecode"
 
     @field_validator("cors_origins", mode="before")
     @classmethod

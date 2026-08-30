@@ -1,4 +1,4 @@
-"""Build the CodeThera root Google ADK 2.0 workflow graph."""
+"""Build the theReCode root Google ADK 2.0 workflow graph."""
 
 from __future__ import annotations
 
@@ -12,14 +12,14 @@ from app.google_adk.agents.specialists import (
 from app.google_adk.nodes import pipeline_nodes as nodes
 
 
-def build_codethera_workflow(*, model: str) -> Workflow:
+def build_therecode_workflow(*, model: str) -> Workflow:
     """Return the full autonomous run workflow orchestrated by Google ADK 2.0."""
     fix_planner = build_fix_planner_agent(model)
     code_fix = build_code_fix_agent(model)
     peer_review = build_peer_review_agent(model)
 
     return Workflow(
-        name="codethera_autonomous_run",
+        name="therecode_autonomous_run",
         edges=[
             (
                 "START",
@@ -52,7 +52,7 @@ def build_post_risk_approval_workflow(*, model: str) -> Workflow:
     peer_review = build_peer_review_agent(model)
 
     return Workflow(
-        name="codethera_post_risk_approval_run",
+        name="therecode_post_risk_approval_run",
         edges=[
             (
                 "START",

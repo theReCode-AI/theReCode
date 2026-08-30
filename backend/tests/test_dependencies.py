@@ -18,7 +18,7 @@ def test_get_mongodb_manager_returns_singleton() -> None:
 def dependency_app(monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     mock_manager = MagicMock(spec=MongoDBManager)
     mock_database = MagicMock(spec=Database)
-    mock_database.name = "codethera_test"
+    mock_database.name = "therecode_test"
     mock_manager.database = mock_database
     monkeypatch.setattr("app.db.dependencies.mongodb_manager", mock_manager)
 

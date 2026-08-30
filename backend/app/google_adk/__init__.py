@@ -1,4 +1,4 @@
-"""Google Agent Development Kit 2.x integration for CodeThera."""
+"""Google Agent Development Kit 2.x integration for theReCode."""
 
 __all__ = [
     "GoogleAdkOrchestrator",

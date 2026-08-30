@@ -91,7 +91,7 @@ export function LoginPage() {
           </Button>
 
           <p className="text-center text-sm text-slate-400">
-            New to CodeThera?{" "}
+            New to theReCode?{" "}
             <Link
               to="/register"
               className="font-semibold text-blue-400 hover:text-blue-300 hover:underline"

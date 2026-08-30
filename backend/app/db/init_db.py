@@ -8,7 +8,7 @@ def initialize_database(manager: MongoDBManager) -> None:
     """Connect to MongoDB and ensure required indexes exist.
 
     Failures are logged but do not abort process startup so Cloud Run can bind
-    to PORT. Set CODETHERA_MONGODB_URI to a reachable host (e.g. Atlas).
+    to PORT. Set THERECODE_MONGODB_URI to a reachable host (e.g. Atlas).
     """
     logger.info(
         "Initializing database",
@@ -23,7 +23,7 @@ def initialize_database(manager: MongoDBManager) -> None:
     except Exception:
         logger.exception(
             "MongoDB unavailable at startup. "
-            "Set CODETHERA_MONGODB_URI to a reachable instance "
+            "Set THERECODE_MONGODB_URI to a reachable instance "
             "(localhost will not work on Cloud Run).",
             extra={
                 "database": manager.database_name,

@@ -11,7 +11,7 @@ from app.services.project_service import ProjectService
 
 @pytest.mark.integration
 def test_project_flow_with_mongodb() -> None:
-    settings = Settings(mongodb_database_name="codethera_projects_test")
+    settings = Settings(mongodb_database_name="therecode_projects_test")
     manager = MongoDBManager(settings)
 
     try:

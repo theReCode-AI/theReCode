@@ -1,7 +1,7 @@
 [project]
-name = "codethera-backend"
+name = "therecode-backend"
 version = "0.1.0"
-description = "CodeThera autonomous AI software-engineering platform backend"
+description = "theReCode autonomous AI software-engineering platform backend"
 readme = "README.md"
 requires-python = ">=3.12,<3.14"
 dependencies = [

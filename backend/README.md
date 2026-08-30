@@ -1,6 +1,6 @@
-# CodeThera Backend
+# theReCode Backend
 
-FastAPI backend for the CodeThera platform.
+FastAPI backend for the theReCode platform.
 
 ## MongoDB
 
@@ -8,8 +8,8 @@ The backend connects to MongoDB on startup and ensures collection indexes are cr
 
 Required environment variables:
 
-- `CODETHERA_MONGODB_URI`
-- `CODETHERA_MONGODB_DATABASE_NAME`
+- `THERECODE_MONGODB_URI`
+- `THERECODE_MONGODB_DATABASE_NAME`
 
 Start local MongoDB:
 

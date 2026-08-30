@@ -22,10 +22,10 @@
 
 gcloud builds submit ./frontend \
   --config=./frontend/cloudbuild.yaml \
-  --substitutions=_IMAGE=europe-north1-docker.pkg.dev/therecode-ai/therecode-agent-v1/harpic-frontend:v3,_VITE_API_BASE_URL=https://harpic-cursor-v1-img-349908796899.europe-west1.run.app/api/v1
+  --substitutions=_IMAGE=europe-north1-docker.pkg.dev/therecode-ai/therecode-agent-fe/therecode-agent-fe:v1,_VITE_API_BASE_URL=https://harpic-cursor-v1-img-349908796899.europe-west1.run.app/api/v1
 
-gcloud run deploy harpic-frontend \
-  --image europe-north1-docker.pkg.dev/therecode-ai/harpic-cursor-v1/harpic-frontend:v3 \
+gcloud run deploy therecode-agent-frontend \
+  --image europe-north1-docker.pkg.dev/therecode-ai/therecode-agent-fe/therecode-agent-fe:v3 \
   --region europe-north1 \
   --port 8080 \
   --allow-unauthenticated

@@ -2,14 +2,14 @@
 
 from google.adk import Workflow
 
-from app.google_adk.workflow_builder import build_codethera_workflow
+from app.google_adk.workflow_builder import build_therecode_workflow
 
 
-def test_build_codethera_workflow_compiles_graph() -> None:
-    workflow = build_codethera_workflow(model="gemini-2.5-flash")
+def test_build_therecode_workflow_compiles_graph() -> None:
+    workflow = build_therecode_workflow(model="gemini-2.5-flash")
 
     assert isinstance(workflow, Workflow)
-    assert workflow.name == "codethera_autonomous_run"
+    assert workflow.name == "therecode_autonomous_run"
     assert workflow.graph is not None
     assert len(workflow.graph.edges) > 0
 

@@ -15,7 +15,7 @@ import { HealthStatus } from "@/components/HealthStatus";
 import { useAppStore } from "@/stores/appStore";
 import { useAuthStore } from "@/stores/authStore";
 
-const BRAND_LOGO = "/codethera-hero.png";
+const BRAND_LOGO = "/therecode-hero.png";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", end: true, icon: DashboardIcon },
@@ -44,15 +44,15 @@ export function AppLayout() {
     <div className="flex h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900">
       {sidebarOpen ? (
         <Sidebar
-          aria-label="CodeThera sidebar"
+          aria-label="theReCode sidebar"
           className="sticky top-0 h-screen w-64 shrink-0"
           theme={sidebarTheme}
         >
-          <div className="mb-6 px-2">
+          <div className="mb-4 px-1">
             <img
               src={BRAND_LOGO}
-              alt="CodeThera"
-              className="h-[120px] w-[250px] object-contain"
+              alt="theReCode"
+              className="mx-auto w-full max-w-[180px] object-contain"
             />
           </div>
           <SidebarItems>
