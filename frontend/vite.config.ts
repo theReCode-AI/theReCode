@@ -15,8 +15,8 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": {
-        target: "http://localhost:8000",
-        // target: "https://harpic-cursor-v1-img-349908796899.europe-west1.run.app",
+        // target: "http://localhost:8000",
+        target: "https://therecode-backend-api-683080071974.europe-west1.run.app/",
         changeOrigin: true,
       },
     },

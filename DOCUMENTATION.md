@@ -1,102 +1,124 @@
 # theReCode
 
-Autonomous AI software-engineering platform for Python repositories on GitHub and GitLab.
+**Autonomous AI software-engineering platform for Python repositories on GitHub and GitLab.**
 
-theReCode analyzes repositories, runs diagnostics, plans and applies fixes, verifies changes, performs peer review, and opens pull/merge requests — behaving like an autonomous software engineer rather than a chatbot.
+> **CodeThera** was the original hackathon codename; the shipping product is branded **theReCode**.
+
+theReCode analyzes real repositories, runs industry-standard diagnostics, plans and applies fixes with Gemini, verifies changes, performs multi-agent peer review, captures institutional memory, and opens pull requests — behaving like an autonomous software engineer, not a chatbot.
 
 | Item | Value |
 |------|-------|
 | Product | theReCode |
 | Backend version | `0.1.0` |
-| License | Proprietary — theReCode |
 | API base | `/api/v1` |
+| Orchestration | Google ADK 2.x + Gemini API |
+| Target repos | Python (FastAPI, Django, libraries, etc.) |
 
 ---
 
 ## Problem
 
-Modern software teams face recurring engineering work that is slow, uneven, and hard to scale:
+Software teams spend disproportionate time on work that is **repeatable but high-stakes**:
 
-- **Quality and security debt** accumulate across Python codebases (lint, SAST, dependencies, secrets, tests, coverage).
-- **Manual triage** of scanner noise is expensive; findings are siloed by tool and lack correlation.
-- **Fix loops** (patch → test → rework) consume senior engineer time without durable institutional memory.
-- **Chatbot-style AI** can suggest patches, but does not own end-to-end clone → diagnose → fix → verify → review → PR workflows with human gates and audit artifacts.
+- **Security and quality debt** — lint violations, SAST findings, dependency CVEs, leaked secrets, failing tests, and coverage gaps pile up faster than teams can triage them.
+- **Tool fragmentation** — Ruff, Semgrep, Bandit, OSV, Gitleaks, and pytest each produce separate reports. Engineers manually correlate noise into actionable issues.
+- **Slow fix loops** — patch → test → rework cycles burn senior engineer hours. Knowledge from past fixes is rarely captured for the next run.
+- **Chatbot limits** — generic LLM assistants can suggest snippets, but they do not **clone a repo, run scanners, apply scoped patches, verify, get human approval, push a branch, and open a PR** with a full audit trail.
 
-Teams need an autonomous system that can operate on real repositories with policy, approvals, and reproducible artifacts — not one-off chat completions.
+**Hackathon insight:** Teams do not need another chat window. They need an **autonomous agent platform** that owns the end-to-end workflow on real Git repositories — with policy gates, human oversight, and reproducible artifacts.
 
 ---
 
 ## Solution
 
-theReCode is a **monorepo platform** that runs a deterministic multi-stage pipeline over a cloned repository, with Gemini-backed specialist agents where planning, coding, and peer review benefit from LLM reasoning.
+theReCode is a **full-stack monorepo platform** that runs a deterministic multi-stage pipeline over a cloned repository, using **Google ADK 2.0 Workflows** for orchestration and **Gemini** for specialist reasoning where it adds the most value (planning, coding, peer review).
 
 ```
-Create project → Link GitHub/GitLab repo → Save encrypted Git token
-       → Create run → Clone into workspace → Execute autonomous pipeline
-       → Human approvals (when required) → Branch + PR/MR → Report
+Register → Link GitHub/GitLab repo → Save encrypted Git token
+    → Create project & run → Clone into workspace
+    → Execute autonomous pipeline (ADK Workflow)
+    → Human approvals when required
+    → Push branch fix/<run_id> + open PR/MR
+    → Generate markdown/PDF report
 ```
+
+**What makes it different from a chatbot**
+
+| Chatbot | theReCode |
+|---------|-----------|
+| Suggests code in isolation | Operates on a cloned repository in a managed workspace |
+| No verification | Runs pytest, scanners, regression tests after every fix |
+| No governance | Risk engine + human approval gates before risky changes |
+| No delivery | Creates real Git branches and pull requests |
+| No memory | Captures project memories for future planning |
 
 **Monorepo layout**
 
 ```
-backend/     FastAPI application, agents, scanners, Google ADK orchestration
-frontend/    React + Vite operator dashboard
-workspace/   Runtime clones and per-run artifacts
+backend/     FastAPI API, ADK orchestration, scanners, domain agents
+frontend/    React + Vite operator dashboard (live SSE progress)
+workspace/   Per-run clones, patches, diffs, reports (filesystem artifacts)
 ```
 
-**Persistence model**
+**Persistence**
 
-- **MongoDB** — users, projects, runs, findings, plans, approvals, memories, reports, etc.
-- **Filesystem workspace** — clone, patches, diffs, baseline JSON, markdown/PDF reports under `THERECODE_WORKSPACE_ROOT`
+- **MongoDB** — users, projects, runs, findings, plans, approvals, memories, git operations, chat history
+- **Filesystem workspace** — clone trees, patch diffs, baseline JSON, markdown/PDF reports under `THERECODE_WORKSPACE_ROOT`
 
-**Primary orchestration entrypoint**
+**Primary entrypoint**
 
-`POST /api/v1/runs/{id}/execute` → `GoogleAdkOrchestrator` (Google ADK 2.x Workflow graph + Gemini API)
+`POST /api/v1/runs/{id}/execute` → `GoogleAdkOrchestrator` walks the ADK `Workflow` graph end-to-end.
 
 ---
 
 ## Features
 
-### Operator dashboard (frontend)
+### Operator dashboard
 
 | Route | Capability |
 |-------|------------|
 | `/login`, `/register` | JWT authentication |
-| `/dashboard` | Project/run summary metrics, recent runs |
-| `/projects` | Create/list projects; project cards with repo/run insight; sort by create date |
-| `/projects/:projectId` | Link repos, start runs, list repositories and runs |
-| `/runs/:runId` | Run overview — pipeline graph, timeline, clone/git actions |
-| `/runs/:runId/findings` | Normalized findings |
+| `/dashboard` | Project/run summary metrics, recent activity |
+| `/projects` | Create/list projects; cards show repo count, run count, latest status |
+| `/projects/:projectId` | Link repos, start runs, view linked repositories and run history |
+| `/runs/:runId` | Run overview — pipeline graph, agent timeline, clone/execute/**git push** |
+| `/runs/:runId/findings` | Normalized findings from all diagnostic agents |
 | `/runs/:runId/diff` | Fix-attempt diffs |
 | `/runs/:runId/approvals` | Human-in-the-loop cards (`approve` / `reject` / `request_changes`) |
-| `/runs/:runId/reports` | Generated markdown/PDF reports |
-| `/settings` | Account + encrypted Git credentials |
+| `/runs/:runId/reports` | Generated markdown/PDF run reports |
+| `/runs/:runId/chat` | Gemini-powered Q&A about the run (findings, fixes, report context) |
+| `/chat` | Select project → run → ask questions |
+| `/settings` | Account + encrypted Git credentials (GitHub/GitLab PAT) |
 
 Live progress uses **Server-Sent Events** (`GET /api/v1/runs/{id}/stream`).
 
 ### Platform capabilities
 
-- **Auth** — register/login, JWT bearer tokens
-- **Projects & repositories** — GitHub/GitLab linked repos, validate/clone
-- **Encrypted Git credentials** — provider tokens at rest
-- **Workspace manager** — per-run directory layout (`baseline/`, `patches/`, `reports/`)
-- **Project intelligence** — structural analysis of the cloned repo
-- **Diagnostic agents** — seven agents wrapping industry scanners
+- **Authentication** — register, login, JWT bearer tokens
+- **Projects & repositories** — link GitHub/GitLab repos, validate access, clone
+- **Encrypted Git credentials** — provider tokens encrypted at rest
+- **Workspace manager** — isolated per-run directories (`baseline/`, `patches/`, `reports/`)
+- **Project intelligence** — structural analysis of the cloned codebase
+- **Seven diagnostic agents** — wrap industry scanners (see table below)
 - **Issue correlation** — group related findings into actionable issue groups
-- **Fix planning & risk policy** — plans with autonomous vs approval-required decisions
-- **Code fix + verification + self-correction** — iterative fix loops
-- **Regression tests** — generated/executed after verification
-- **Multi-agent peer review** — Security, Testing, Architecture + synthesizer
-- **Human approvals** — risk gate and final review cards
-- **Memory** — `project`, `decision`, `failure`, `success_strategy` for later planning
-- **Git finalization** — branch `fix/<run_id>`, push, open PR/MR
-- **Reports** — markdown + PDF run reports
-- **Dark/light theme** — Flowbite theme mode
+- **Fix planning** — Gemini fix planner produces scoped patch plans
+- **Risk policy engine** — autonomous vs approval-required decisions
+- **Code fix agent** — Gemini applies patches with scope enforcement
+- **Verification engine** — re-run tests and scanners on applied fixes
+- **Self-correction loop** — retry failed verifications (configurable max iterations)
+- **Regression tests** — generated/executed after verification passes
+- **Multi-agent peer review** — Security, Testing, Architecture reviewers + synthesizer
+- **Human approvals** — risk gate and final review with diff viewer
+- **Institutional memory** — `project`, `decision`, `failure`, `success_strategy` types
+- **Git finalization** — branch `fix/<run_id>`, commit, push, open PR/MR (pipeline + manual UI button)
+- **Run reports** — markdown + PDF with health score and PR metadata
+- **Run chat** — contextual Gemini chat grounded in run artifacts
+- **Dark/light theme** — Flowbite design system
 
-### Diagnostic agents and scanners
+### Diagnostic agents
 
-| Agent | Scanner |
-|-------|---------|
+| Agent | Scanner / tool |
+|-------|----------------|
 | `code_quality_agent` | Ruff |
 | `semgrep_agent` | Semgrep |
 | `security_agent` | Bandit |
@@ -113,7 +135,7 @@ Live progress uses **Server-Sent Events** (`GET /api/v1/runs/{id}/stream`).
 
 ## Architecture
 
-### High-level
+### High-level system diagram
 
 ```text
 ┌─────────────────┐     HTTPS / SSE      ┌──────────────────────────────┐
@@ -124,7 +146,7 @@ Live progress uses **Server-Sent Events** (`GET /api/v1/runs/{id}/stream`).
                          ┌─────────────────────────────┼─────────────────────────────┐
                          ▼                             ▼                             ▼
                   ┌─────────────┐            ┌─────────────────┐            ┌──────────────┐
-                  │  MongoDB    │            │ Google ADK      │            │  Workspace   │
+                  │  MongoDB    │            │ Google ADK 2.x  │            │  Workspace   │
                   │  Atlas/local│            │ Workflow+Gemini │            │  filesystem  │
                   └─────────────┘            └─────────────────┘            └──────────────┘
 ```
@@ -139,7 +161,7 @@ API routes (app/api/routes)
         → Workspace manager (app/workspace) → disk
 ```
 
-Dependency injection lives under `backend/app/api/dependencies/`. Primary execute path wires **`GoogleAdkOrchestrator`** (legacy `RootOrchestrator` remains in tree but is not the default DI path).
+Dependency injection: `backend/app/api/dependencies/`. The execute path wires **`GoogleAdkOrchestrator`** (Google ADK 2.0).
 
 ### Frontend structure
 
@@ -155,20 +177,23 @@ frontend/src/
 
 ### MongoDB collections
 
-`users`, `projects`, `repositories`, `runs`, `agent_events`, `agent_states`, `findings`, `issue_groups`, `fix_plans`, `risk_decisions`, `fix_attempts`, `verification_results`, `self_correction_cycles`, `regression_test_results`, `reviews`, `approvals`, `memories`, `git_operations`, `git_credentials`, `reports`
+`users`, `projects`, `repositories`, `runs`, `agent_events`, `agent_states`, `findings`, `issue_groups`, `fix_plans`, `risk_decisions`, `fix_attempts`, `verification_results`, `self_correction_cycles`, `regression_test_results`, `reviews`, `approvals`, `memories`, `git_operations`, `git_credentials`, `reports`, `chat_messages`
 
 ### Execute data flow
 
-1. Authenticate (JWT).
-2. Create project, link repository, store Git credential.
-3. Create run → workspace paths under `THERECODE_WORKSPACE_ROOT`.
-4. `POST .../execute` → ADK Runner walks workflow nodes.
-5. Deterministic stages write Mongo + disk artifacts; Gemini specialists call typed FunctionTools.
+1. User authenticates (JWT).
+2. Creates project, links repository, stores encrypted Git credential.
+3. Creates run → workspace paths allocated under `THERECODE_WORKSPACE_ROOT`.
+4. `POST .../execute` → ADK `Runner` walks the workflow graph.
+5. Deterministic `@node` stages write Mongo + disk artifacts; Gemini specialists invoke typed `FunctionTool`s.
 6. UI subscribes via SSE (`snapshot`, `run_update`, `state_update`, `agent_event`, `heartbeat`, `complete`).
+7. Operator reviews approvals, pushes to GitHub from run overview, reads report and PR link.
 
 ---
 
 ## Agent Architecture
+
+theReCode is a **multi-agent platform**, not a single monolithic LLM call. Orchestration combines **deterministic pipeline nodes** (reliable, auditable) with **Gemini specialist agents** (reasoning where needed).
 
 ### Orchestration stages
 
@@ -183,34 +208,40 @@ Built in `backend/app/google_adk/workflow_builder.py`:
 | Workflow | Purpose |
 |----------|---------|
 | `therecode_autonomous_run` | Full pipeline from initialize through finalize |
-| `therecode_post_risk_approval_run` | Resume after risk-gate human approval (from code fix onward) |
+| `therecode_post_risk_approval_run` | Resume after risk-gate human approval (code fix onward) |
 
 ### Stage types
 
-| Kind | Stages | Implementation |
-|------|--------|----------------|
-| **Deterministic nodes** | Clone, intelligence, diagnostics, correlate, risk, verify, self-correct, regression, memory, git, report, … | `@node` functions in `pipeline_nodes.py` calling service container |
-| **LLM specialists** | Fix planning, code fix, peer review | Gemini agents + FunctionTools in `google_adk/agents/specialists.py` |
+| Kind | Examples | Implementation |
+|------|----------|----------------|
+| **Deterministic nodes** | Clone, diagnostics, correlate, risk, verify, self-correct, regression, memory, git, report | `@node` functions in `pipeline_nodes.py` → service container |
+| **LLM specialists** | Fix planning, code fix, peer review | Gemini `LlmAgent` + `FunctionTool` in `specialists.py` |
 
 ### Gemini specialist agents
 
-| Agent | Tool |
-|-------|------|
-| `fix_planner_agent` | `create_fix_plans` |
-| `code_fix_agent` | `apply_autonomous_fixes` |
-| `peer_review_agent` | `run_multi_agent_peer_review` |
+| Agent | Tool | Role |
+|-------|------|------|
+| `fix_planner_agent` | `create_fix_plans` | Turn correlated issues into scoped patch plans |
+| `code_fix_agent` | `apply_autonomous_fixes` | Apply approved/eligible fixes in workspace |
+| `peer_review_agent` | `run_multi_agent_peer_review` | Coordinate Security, Testing, Architecture review |
 
-Peer-review sub-roles: **Security**, **Testing**, **Architecture**, plus a **Synthesizer** (`backend/app/adk/peer_review/`).
+Peer-review sub-roles live under `backend/app/adk/peer_review/` with a **Synthesizer** that produces a final verdict.
 
 ### Domain agent packages
 
-Python packages under `backend/app/adk/` implement diagnostic agents, correlation, fix planner, risk, code fix, verification, self-correction, regression, peer review, memory, git finalization, and reporting — invoked by services and ADK nodes.
+Python packages under `backend/app/adk/` implement diagnostics, correlation, fix planner, risk, code fix, verification, self-correction, regression, peer review, memory, git finalization, and reporting — invoked by services and ADK nodes.
+
+### Human-in-the-loop
+
+- **Risk gate** — high-risk patch plans pause the pipeline (`AWAITING_APPROVAL`) until a human decides.
+- **Final review** — peer review may request changes; approval cards include diff artifacts.
+- **Resume** — `POST /runs/{id}/execute` with `resume_after_approval: true` continues via `therecode_post_risk_approval_run`.
 
 ### Sessions
 
 - ADK app name: `THERECODE_GOOGLE_ADK_APP_NAME` (default `therecode`)
 - Session service: **in-memory** (`InMemorySessionService`), `session_id = run_id`
-- Not durable across process restarts
+- Domain state is durable in MongoDB + workspace; ADK session is orchestration-scoped only
 
 ---
 
@@ -218,40 +249,42 @@ Python packages under `backend/app/adk/` implement diagnostic agents, correlatio
 
 ### Prerequisites
 
-- Python **3.12+** (`>=3.12,<3.14`)
-- [uv](https://docs.astral.sh/uv/)
-- Node.js **22+**
-- Docker / Docker Compose
+| Tool | Version |
+|------|---------|
+| Python | 3.12+ (`>=3.12,<3.14`) |
+| uv | [Astral uv](https://docs.astral.sh/uv/) |
+| Node.js | 22+ |
+| Docker / Docker Compose | For MongoDB and full-stack deploy |
 
-### Backend (selected)
+### Backend
 
-| Component | Notes |
-|-----------|-------|
+| Component | Role |
+|-----------|------|
 | FastAPI | HTTP API |
 | Uvicorn | ASGI server |
 | Pydantic / pydantic-settings | Config & schemas (`THERECODE_` prefix) |
 | PyMongo | MongoDB driver |
-| PyJWT + bcrypt | Auth |
+| PyJWT + bcrypt | Authentication |
 | Cryptography | Git credential encryption |
-| httpx | Provider HTTP |
-| **google-adk ≥ 2.8** | Orchestration (locked 2.8.x) |
-| google-genai | Gemini client (transitive) |
-| Ruff, Semgrep, Bandit | Python scanner group |
-| osv-scanner, gitleaks | Installed as binaries in Docker image |
+| httpx | Git provider HTTP |
+| **google-adk ≥ 2.8** | Workflow orchestration |
+| google-genai | Gemini client |
+| Ruff, Semgrep, Bandit | Python scanners |
+| osv-scanner, gitleaks | Security binaries (Docker image) |
 | pytest + coverage | Test/coverage agents |
 
-Docker Mongo image: **`mongo:7`**. Backend runtime image: Python **3.12** slim + scanner binaries (e.g. osv-scanner **2.5.1**, gitleaks **8.30.1**).
+Docker: **`mongo:7`** for database; backend image is Python **3.12** slim with scanner binaries.
 
-### Frontend (selected)
+### Frontend
 
-| Component | Notes |
-|-----------|-------|
-| React 18 | UI |
-| Vite 5 | Dev server & build |
-| TypeScript ~5.6 | Typing |
-| React Router 6 | Routes |
-| TanStack Query 5 | Server state |
-| Zustand 5 | Client auth/shell state |
+| Component | Role |
+|-----------|------|
+| React 18 | UI framework |
+| Vite 5 | Dev server & production build |
+| TypeScript ~5.6 | Type safety |
+| React Router 6 | Client routing |
+| TanStack Query 5 | Server state / caching |
+| Zustand 5 | Auth and shell state |
 | Tailwind CSS 3 + Flowbite React | Design system |
 | Vitest | Unit tests |
 | nginx (Alpine) | Production static hosting |
@@ -260,21 +293,32 @@ Docker Mongo image: **`mongo:7`**. Backend runtime image: Python **3.12** slim +
 
 ## Gemini Integration
 
-theReCode uses the **Gemini Developer API** (AI Studio), not Vertex AI by default.
+theReCode uses the **Gemini Developer API** (Google AI Studio) by default — not Vertex AI.
 
-| Setting | Role |
-|---------|------|
-| `THERECODE_GOOGLE_API_KEY` | API key ([AI Studio](https://aistudio.google.com/apikey)); also accepted as `GOOGLE_API_KEY` |
-| `THERECODE_GOOGLE_GENAI_USE_VERTEXAI` | Must be `false` for API-key mode |
-| `THERECODE_GEMINI_MODEL` | Model id (example/env: `gemini-2.5-flash`; code default may differ — set explicitly in env) |
+| Setting | Purpose |
+|---------|---------|
+| `THERECODE_GOOGLE_API_KEY` | API key from [AI Studio](https://aistudio.google.com/apikey) |
+| `THERECODE_GOOGLE_GENAI_USE_VERTEXAI` | `false` for API-key mode |
+| `THERECODE_GEMINI_MODEL` | Model id (e.g. `gemini-2.5-flash`) |
 
-Bootstrap:
+### Where Gemini is used
+
+| Use case | Implementation |
+|----------|----------------|
+| Fix planning | ADK `fix_planner_agent` |
+| Code fixing | ADK `code_fix_agent` |
+| Peer review | ADK `peer_review_agent` |
+| Run chat | `GeminiChatClient` + `ChatService` (direct `google-genai`, AFC disabled for reliability) |
+
+### Bootstrap
 
 - Settings load from `backend/app/.env` via `backend/app/core/config.py`
-- `bootstrap_google_genai` exports the key into the process environment for ADK/GenAI clients (`backend/app/google_adk/bootstrap.py`)
-- Lifespan startup and `execute` path call configuration guards (`ensure_google_adk_configured`)
+- `bootstrap_google_genai` exports the API key for ADK/GenAI clients
+- Lifespan startup and execute path call `ensure_google_adk_configured`
 
-LLM usage is concentrated in **fix planner**, **code fix**, and **peer review** specialists; remaining pipeline stages are deterministic service calls for reliability and cost control.
+### Design principle
+
+**Deterministic stages for reliability; Gemini for reasoning.** Clone, scan, verify, git push, and report generation are service calls — not LLM prompts — so the pipeline is predictable, testable, and cost-controlled.
 
 ---
 
@@ -283,25 +327,36 @@ LLM usage is concentrated in **fix planner**, **code fix**, and **peer review** 
 | Item | Detail |
 |------|--------|
 | Package | `google-adk>=2.8` |
-| Orchestrator | `GoogleAdkOrchestrator` |
-| Graph builder | `backend/app/google_adk/workflow_builder.py` |
-| Nodes | `backend/app/google_adk/pipeline_nodes.py` |
+| Orchestrator | `GoogleAdkOrchestrator` (`backend/app/google_adk/orchestrator.py`) |
+| Workflow builder | `backend/app/google_adk/workflow_builder.py` |
+| Pipeline nodes | `backend/app/google_adk/nodes/pipeline_nodes.py` |
 | Specialists | `backend/app/google_adk/agents/specialists.py` |
 | Execute API | `POST /api/v1/runs/{id}/execute` |
-| Resume path | Post–risk-approval workflow after human `decide` |
+| Resume API | Same endpoint with `{ "resume_after_approval": true }` |
 
-Pattern:
+### Integration pattern
 
-1. Build ADK `Workflow` with ordered edges (START → … → finalize).
-2. Attach deterministic nodes that call FastAPI service-layer use cases.
-3. Attach LlmAgents with typed FunctionTools for specialist steps.
-4. Run with session scoped to `run_id`; persist domain state in Mongo + workspace artifacts.
+```text
+1. Build ADK Workflow with ordered edges (START → … → finalize_run)
+2. Register deterministic @node functions that call FastAPI services
+3. Attach LlmAgents with typed FunctionTools for specialist steps
+4. Run via ADK Runner with session_id = run_id
+5. Persist all domain state in MongoDB + workspace artifacts
+6. Stream agent events to UI over SSE
+```
+
+### Why ADK for a hackathon project
+
+- **First-class workflow graphs** — explicit stage ordering, not ad-hoc prompt chains
+- **Tool calling** — specialists invoke backend services through typed tools
+- **Pause/resume** — risk approval gate maps cleanly to a second workflow graph
+- **Google ecosystem alignment** — pairs naturally with Gemini API and Cloud Run deployment
 
 ---
 
 ## Google Cloud Architecture
 
-Typical deployment (see `deploy.txt`):
+Typical production layout (see `deploy.txt`):
 
 ```text
 ┌──────────────────┐     ┌──────────────────┐     ┌────────────────────┐
@@ -311,48 +366,62 @@ Typical deployment (see `deploy.txt`):
          │               │ /workspace (ephemeral)
          │               └──────────────────┘
          │                        ▲
-         ▼                        │ HTTPS VITE_API_BASE_URL
+         ▼                        │ HTTPS (VITE_API_BASE_URL)
 ┌──────────────────┐     ┌──────────────────┐
 │ Cloud Build      │────►│ Cloud Run        │
 │ backend/frontend │     │ Frontend nginx   │
 └──────────────────┘     │ PORT 8080        │
                          └──────────────────┘
+                                  │
+                                  ▼
+                         Gemini API (AI Studio key)
 ```
 
-**Important Cloud Run constraints**
+### Cloud Run constraints
 
 | Concern | Guidance |
 |---------|----------|
-| MongoDB | Use **Atlas** (`mongodb+srv://…`). Localhost Mongo in image env will not work from Cloud Run. |
-| Atlas network | Allow `0.0.0.0/0` (or known egress) — Cloud Run IPs are dynamic. |
-| Frontend | Image is **static-only**. Do **not** proxy to Docker hostname `backend` (compose-only). Bake `VITE_API_BASE_URL=https://<backend>/api/v1` at build time. |
+| MongoDB | Use **Atlas** (`mongodb+srv://…`). In-container Mongo will not work from Cloud Run. |
+| Atlas network | Allow `0.0.0.0/0` or known egress — Cloud Run IPs are dynamic. |
+| Frontend | Static SPA only on Cloud Run. Bake `VITE_API_BASE_URL=https://<backend>/api/v1` at **build time**. |
 | Frontend port | **8080** (`$PORT`). |
-| Workspace | `/workspace` is **ephemeral**; approval decide can persist in Mongo without disk; full pipeline resume still needs durable storage for clone/artifacts. |
-| Backend listen | Bind `${PORT:-8000}`; Mongo connect is soft/lazy so PORT can bind before Atlas is reachable. |
+| Workspace | `/workspace` is **ephemeral** — clones do not survive instance recycle. |
+| Secrets | Use Secret Manager for `THERECODE_GOOGLE_API_KEY`, JWT secret, encryption key in production. |
+| CORS | Set `THERECODE_CORS_ORIGINS` to the frontend Cloud Run URL. |
 
-Compose vs Cloud Run:
+### Compose vs Cloud Run
 
-- **Compose** — `nginx.compose.conf.template` proxies `/api` → `backend:8000`
-- **Cloud Run frontend** — `nginx.conf.template` serves SPA only
+| Environment | API routing |
+|-------------|-------------|
+| Docker Compose | nginx proxies `/api` → `backend:8000` |
+| Cloud Run frontend | Absolute `VITE_API_BASE_URL` to backend service URL |
 
 ---
 
 ## Setup
 
-### 1. Clone and environment
+### 1. Clone and configure
 
 ```bash
+git clone <repo-url>
+cd harpic-agent-ai-cursor
 cp .env.example .env
-# Edit: THERECODE_GOOGLE_API_KEY, JWT/encryption secrets, Mongo URI if needed
 ```
 
-Backend also reads `backend/app/.env` for runtime settings used in Docker/Cloud images.
+Edit `.env`:
 
-### 2. Prerequisites check
+- `THERECODE_GOOGLE_API_KEY` — required for pipeline and chat
+- `THERECODE_JWT_SECRET_KEY` — change from dev default in production
+- `THERECODE_CREDENTIALS_ENCRYPTION_KEY` — 32+ char key for Git token encryption
+- `THERECODE_MONGODB_URI` — local or Atlas connection string
 
-- Python 3.12+, uv, Node 22+, Docker
+Backend also reads `backend/app/.env` (used in Docker/Cloud images).
 
-### 3. Optional: Docker Compose env
+### 2. Prerequisites
+
+- Python 3.12+, uv, Node.js 22+, Docker
+
+### 3. Docker Compose env (optional)
 
 ```bash
 cp .env.docker.example .env
@@ -362,7 +431,7 @@ cp .env.docker.example .env
 
 ## Local Development
 
-### MongoDB only
+### Start MongoDB
 
 ```bash
 docker compose up -d mongodb
@@ -376,7 +445,7 @@ uv sync
 uv run uvicorn app.main:app --reload --port 8000
 ```
 
-- API: http://localhost:8000  
+- API: http://localhost:8000
 - OpenAPI: http://localhost:8000/docs (disabled when `THERECODE_ENVIRONMENT=production`)
 
 ### Frontend
@@ -387,9 +456,9 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173  
+Open http://localhost:5173
 
-Local Vite can proxy `/api` (see `frontend/vite.config.ts`). Prefer `VITE_API_BASE_URL` pointing at your API when not using the proxy.
+Set `VITE_API_BASE_URL=http://localhost:8000/api/v1` in `.env` or rely on Vite proxy.
 
 ### Full stack via Docker
 
@@ -399,80 +468,63 @@ docker compose --profile app up --build
 ./scripts/validate-docker.sh
 ```
 
-| Service | Port |
-|---------|------|
-| Frontend | http://localhost:5173 → container 8080 |
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:5173 |
 | Backend | http://localhost:8000 |
 | MongoDB | localhost:27017 |
-
-### Typical operator flow
-
-1. Register / sign in.
-2. **Settings** — save GitHub or GitLab token.
-3. **Projects** — create project, open it, link `owner/repo`.
-4. Create a run → open run → **Clone repository** (or execute full pipeline).
-5. Monitor pipeline / SSE; handle **Approvals**; view **Diff**, **Findings**, **Reports**.
 
 ---
 
 ## Cloud Deployment
 
-Commands below match `deploy.txt` patterns (substitute your project, region, and image names).
-
 ### Artifact Registry
 
 ```bash
-gcloud artifacts repositories create harpic-cursor-v1 \
+gcloud artifacts repositories create therecode \
   --repository-format=docker \
-  --location=europe-north1 \
-  --description="theReCode" \
-  --immutable-tags \
-  --async
+  --location=REGION \
+  --description="theReCode images"
 ```
 
-### Backend image
+### Backend image + Cloud Run
 
 ```bash
 gcloud builds submit ./backend \
   --config=./backend/cloudbuild.yaml \
-  --substitutions=_IMAGE=REGION-docker.pkg.dev/PROJECT/REPO/backend:tag
-```
+  --substitutions=_IMAGE=REGION-docker.pkg.dev/PROJECT/therecode/backend:latest
 
-Configure Cloud Run service env (example):
-
-```bash
-gcloud run services update SERVICE \
+gcloud run deploy therecode-api \
+  --image REGION-docker.pkg.dev/PROJECT/therecode/backend:latest \
   --region REGION \
-  --set-env-vars "THERECODE_MONGODB_URI=mongodb+srv://USER:PASS@CLUSTER/therecode?retryWrites=true&w=majority,THERECODE_WORKSPACE_ROOT=/workspace,THERECODE_ENVIRONMENT=production,THERECODE_GOOGLE_API_KEY=YOUR_KEY,THERECODE_GOOGLE_GENAI_USE_VERTEXAI=false,THERECODE_GEMINI_MODEL=gemini-2.5-flash"
+  --port 8000 \
+  --allow-unauthenticated \
+  --set-env-vars "THERECODE_MONGODB_URI=mongodb+srv://...,THERECODE_WORKSPACE_ROOT=/workspace,THERECODE_ENVIRONMENT=production,THERECODE_GOOGLE_GENAI_USE_VERTEXAI=false,THERECODE_GEMINI_MODEL=gemini-2.5-flash"
 ```
 
-Prefer Secret Manager for keys in production rather than baking `app/.env` long-term.
+Store `THERECODE_GOOGLE_API_KEY`, JWT secret, and encryption key in **Secret Manager** for production.
 
-### Frontend image
-
-Bake the **public** backend API URL:
+### Frontend image + Cloud Run
 
 ```bash
 gcloud builds submit ./frontend \
   --config=./frontend/cloudbuild.yaml \
-  --substitutions=_IMAGE=REGION-docker.pkg.dev/PROJECT/REPO/frontend:tag,_VITE_API_BASE_URL=https://BACKEND_HOST/api/v1
-```
+  --substitutions=_IMAGE=REGION-docker.pkg.dev/PROJECT/therecode/frontend:latest,_VITE_API_BASE_URL=https://BACKEND_URL/api/v1
 
-```bash
-gcloud run deploy FRONTEND_SERVICE \
-  --image REGION-docker.pkg.dev/PROJECT/REPO/frontend:tag \
+gcloud run deploy therecode-ui \
+  --image REGION-docker.pkg.dev/PROJECT/therecode/frontend:latest \
   --region REGION \
   --port 8080 \
   --allow-unauthenticated
 ```
 
-Update backend `THERECODE_CORS_ORIGINS` to include the frontend Cloud Run origin.
+Update backend `THERECODE_CORS_ORIGINS` with the frontend Cloud Run origin.
 
 ---
 
 ## Environment Variables
 
-Prefix: **`THERECODE_`** (pydantic-settings). Frontend uses **`VITE_`**.
+Prefix: **`THERECODE_`** (backend). Frontend: **`VITE_`**.
 
 ### Application
 
@@ -493,31 +545,21 @@ Prefix: **`THERECODE_`** (pydantic-settings). Frontend uses **`VITE_`**.
 |----------|-------------|
 | `THERECODE_MONGODB_URI` | Connection string |
 | `THERECODE_MONGODB_DATABASE_NAME` | Default `therecode` |
-| `THERECODE_MONGODB_SERVER_SELECTION_TIMEOUT_MS` | Default `5000` |
-| `THERECODE_MONGODB_CONNECT_TIMEOUT_MS` | Default `5000` |
 
 ### Auth & credentials
 
 | Variable | Description |
 |----------|-------------|
 | `THERECODE_JWT_SECRET_KEY` | JWT signing secret |
-| `THERECODE_JWT_ALGORITHM` | Default `HS256` |
 | `THERECODE_JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | Default `60` |
 | `THERECODE_CREDENTIALS_ENCRYPTION_KEY` | Git token encryption key |
-
-### Git providers
-
-| Variable | Description |
-|----------|-------------|
-| `THERECODE_GITHUB_API_BASE_URL` | Default `https://api.github.com` |
-| `THERECODE_GITLAB_API_BASE_URL` | Default `https://gitlab.com/api/v4` |
 
 ### Gemini / ADK
 
 | Variable | Description |
 |----------|-------------|
-| `THERECODE_GOOGLE_API_KEY` | Gemini API key |
-| `THERECODE_GOOGLE_GENAI_USE_VERTEXAI` | `false` for AI Studio keys |
+| `THERECODE_GOOGLE_API_KEY` | Gemini API key (**required**) |
+| `THERECODE_GOOGLE_GENAI_USE_VERTEXAI` | `false` for AI Studio |
 | `THERECODE_GEMINI_MODEL` | e.g. `gemini-2.5-flash` |
 | `THERECODE_GOOGLE_ADK_APP_NAME` | Default `therecode` |
 
@@ -525,54 +567,64 @@ Prefix: **`THERECODE_`** (pydantic-settings). Frontend uses **`VITE_`**.
 
 | Variable | Description |
 |----------|-------------|
-| `VITE_API_BASE_URL` | API base URL baked at build time; runtime fallback `"/api/v1"` |
-
-### Other settings (code defaults)
-
-| Setting | Typical default |
-|---------|-----------------|
-| Scanner timeout | `300` seconds |
-| Max fix iterations | `3` |
+| `VITE_API_BASE_URL` | API base URL (baked at build time for Cloud Run) |
 
 ---
 
 ## Demo
 
-### Happy-path script (local)
+### 5-minute judge demo script
+
+**Goal:** Show autonomous SDLC on a real Python repo with human gate and PR output.
+
+| Step | Action | What to highlight |
+|------|--------|-------------------|
+| 1 | Open dashboard, sign in | Clean operator UI |
+| 2 | Settings → save GitHub PAT | Encrypted credential storage |
+| 3 | Projects → create project → link `owner/repo` | Git provider integration |
+| 4 | Create run → open run overview | Workspace + pipeline graph |
+| 5 | **Run full pipeline** | ADK workflow executes; SSE live timeline |
+| 6 | Show **Findings** tab | Seven scanners normalized |
+| 7 | If paused → **Approvals** tab → approve | Human-in-the-loop |
+| 8 | Show **Diff** tab | Scoped patch artifacts |
+| 9 | **Push to GitHub** on overview | Branch `fix/<run_id>`, PR created |
+| 10 | **Reports** tab | Markdown report + health score |
+| 11 | **Chat** tab → ask "What security issues were found?" | Gemini grounded in run context |
+
+### Local quick start
 
 ```bash
-# Terminal A — Mongo
+# Terminal A
 docker compose up -d mongodb
 
-# Terminal B — API
+# Terminal B
 cd backend && uv sync && uv run uvicorn app.main:app --reload --port 8000
 
-# Terminal C — UI
+# Terminal C
 cd frontend && npm install && npm run dev
 ```
 
-1. Open http://localhost:5173 → **Create account**.
-2. **Settings** → add GitHub or GitLab personal access token (repo + PR scopes as required by your provider).
-3. **Projects** → create a project → open it → **Link repository** (`owner/repo`).
-4. **Create run** → open the run.
-5. On Overview, **Clone repository**, then trigger **Execute** (or use step APIs from `/docs`).
-6. Watch the pipeline graph and agent timeline (SSE).
-7. If status is `AWAITING_APPROVAL`, open **Approvals** and decide.
-8. After completion, open **Reports** and the provider PR/MR from git finalization metadata.
+Open http://localhost:5173
 
-### Key API demo calls
+### API smoke test
 
 ```bash
 BASE=http://localhost:8000/api/v1
 
 curl -s "$BASE/health"
+
 curl -s -X POST "$BASE/auth/register" -H 'Content-Type: application/json' \
-  -d '{"email":"demo@example.com","password":"TestPass123!","full_name":"Demo"}'
-# login → TOKEN
+  -d '{"email":"demo@example.com","password":"TestPass123!","full_name":"Demo User"}'
+
+# Login → export TOKEN=...
 curl -s "$BASE/auth/me" -H "Authorization: Bearer $TOKEN"
 ```
 
-Use `/docs` interactively for projects, credentials, runs, and `POST /runs/{id}/execute`.
+Use `/docs` for interactive exploration of projects, runs, and `POST /runs/{id}/execute`.
+
+### Demo repository suggestions
+
+Use a small Python repo with intentional issues (lint, Bandit finding, failing test) so the pipeline produces visible findings and fixes within a few minutes.
 
 ---
 
@@ -589,6 +641,7 @@ uv run ruff check .
 
 - `asyncio_mode = auto`
 - Marker `integration` for Mongo-backed tests
+- Coverage: services, ADK nodes, git finalization, chat, approvals, scanners
 
 ### Frontend
 
@@ -605,60 +658,62 @@ chmod +x scripts/validate-docker.sh
 ./scripts/validate-docker.sh
 ```
 
-Checks compose config, image builds, and health endpoints.
+Validates compose config, image builds, and health endpoints.
 
 ---
 
 ## Limitations
 
-1. **Ephemeral Cloud Run workspace** — `/workspace` does not survive instance recycle. Approval decisions can persist in Mongo without disk; durable clones/patches need external volume or re-clone strategies.
-2. **In-memory ADK sessions** — orchestration sessions are not shared across replicas or restarts.
-3. **Python-first scanners** — diagnostic toolchain targets Python repos; other languages are out of scope for current agents.
-4. **Gemini cost/latency** — specialist stages depend on external LLM availability and quotas.
-5. **Atlas networking** — misconfigured IP allow lists cause TLS/handshake failures from Cloud Run.
-6. **Frontend Cloud Run** — absolute `VITE_API_BASE_URL` required; compose-style nginx upstream `backend` is invalid on Cloud Run.
-7. **Production docs** — OpenAPI UI is disabled when `THERECODE_ENVIRONMENT=production`.
-8. **Model id drift** — keep `THERECODE_GEMINI_MODEL` explicit; example env and code defaults may differ.
-9. **Single-tenant UX** — dashboard is per authenticated user; no multi-org RBAC productization yet.
+1. **Ephemeral Cloud Run workspace** — `/workspace` does not survive instance recycle; full pipeline resume after long delays may require re-clone.
+2. **In-memory ADK sessions** — orchestration sessions are not shared across replicas or process restarts (domain state in Mongo is durable).
+3. **Python-first** — diagnostic toolchain targets Python repositories; other languages are out of scope.
+4. **Gemini dependency** — fix planning, code fix, peer review, and chat require API key and are subject to quota/latency.
+5. **Atlas networking** — misconfigured IP allow lists cause connection failures from Cloud Run.
+6. **Frontend Cloud Run** — requires absolute `VITE_API_BASE_URL` at build time; compose-style nginx upstream names do not work.
+7. **OpenAPI disabled in production** — `/docs` hidden when `THERECODE_ENVIRONMENT=production`.
+8. **Single-user model** — per-user projects; no multi-tenant org RBAC yet.
+9. **Manual git push fallback** — pipeline may skip git finalization if prerequisites fail; operator can push from run overview when fixes are applied.
 
 ---
 
 ## Future Improvements
 
-Suggested next steps aligned with the current codebase and phase roadmap:
-
 | Area | Improvement |
 |------|-------------|
-| Storage | Durable workspace (GCS/Filestore) for Cloud Run multi-instance runs |
-| ADK | Persistent session/state backend instead of `InMemorySessionService` |
-| AuthZ | Organizations, roles, shared projects |
-| Scanners | Expand language/ecosystem coverage beyond Python |
-| Observability | Structured traces per stage, metrics dashboards |
-| Secrets | Secret Manager / Workload Identity for Gemini and Mongo |
-| UX | Deeper run compare, bulk project ops, notification webhooks |
-| CI | Managed Cloud Build triggers + progressive delivery |
-| Vertex | Optional `THERECODE_GOOGLE_GENAI_USE_VERTEXAI=true` path for enterprise |
-| Resilience | Stronger resume semantics after approval when workspace is gone |
+| **Storage** | GCS or Filestore-backed workspace for durable Cloud Run clones |
+| **ADK** | Persistent session backend (Redis/Firestore) for multi-replica orchestration |
+| **AuthZ** | Organizations, roles, shared projects, audit log |
+| **Scanners** | JavaScript, Go, Terraform language packs |
+| **Observability** | OpenTelemetry traces per pipeline stage, Cloud Monitoring dashboards |
+| **Secrets** | Secret Manager + Workload Identity; remove baked `.env` from images |
+| **Vertex AI** | Optional `THERECODE_GOOGLE_GENAI_USE_VERTEXAI=true` for enterprise |
+| **CI integration** | GitHub Actions trigger on PR; status checks back to provider |
+| **Notifications** | Slack/email webhooks on approval required or PR created |
+| **Cost controls** | Per-run token budgets, model routing (flash vs pro) |
 
-Historical implementation phases (1–25, 28, 29, 31) are tracked in `README.md`. **Phase 31 (Google ADK 2.0 + Gemini API)** is the current orchestration baseline; **Phase 29 (Cloud Run)** is supported via Dockerfiles and `deploy.txt`.
+### Implementation phases completed
+
+Phases 1–25, 28, 29, and 31 are implemented. **Phase 31 (Google ADK 2.0 + Gemini API)** is the current orchestration baseline. See `README.md` for the full phase table.
 
 ---
 
-## API quick reference
+## API Quick Reference
 
-| Area | Examples |
-|------|----------|
-| Health | `GET /api/v1/health`, `GET /api/v1/health/ready` |
+| Area | Endpoints |
+|------|-----------|
+| Health | `GET /health`, `GET /health/ready` |
 | Auth | `POST /auth/register`, `POST /auth/login`, `GET /auth/me` |
 | Projects | `CRUD /projects`, repositories under `/projects/{id}/repositories` |
 | Git credentials | `POST/GET /git/credentials` |
-| Runs | `POST /runs`, clone/analyze/diagnostics/agents/findings |
-| Pipeline | `correlate`, `plan`, `assess-risk`, `fix`, `verify`, `self-correct`, `regression-tests`, `peer-review` |
-| Approvals | `approvals/prepare`, `approvals/{id}/decide`, diffs |
-| Orchestration | `POST /runs/{id}/execute`, `GET /runs/{id}/stream`, `GET /runs/{id}/state` |
-| Memory / Git / Reports | `memory/capture`, `git/finalize`, `reports/generate` |
+| Runs | `POST /runs`, `POST /runs/{id}/clone`, `POST /runs/{id}/execute` |
+| Pipeline steps | `correlate`, `plan`, `assess-risk`, `fix`, `verify`, `self-correct`, `regression-tests`, `peer-review` |
+| Approvals | `approvals/prepare`, `approvals/{id}/decide`, diff endpoints |
+| Live progress | `GET /runs/{id}/stream`, `GET /runs/{id}/state`, `GET /runs/{id}/events` |
+| Git | `POST /runs/{id}/git/finalize`, `GET /runs/{id}/git/operations` |
+| Reports | `POST /runs/{id}/reports/generate`, `GET /runs/{id}/reports` |
+| Chat | `GET/POST/DELETE /runs/{id}/chat/messages` |
 
-Full interactive schema: `/docs` in non-production environments.
+Full interactive schema: `/docs` (non-production only).
 
 ---
 
