@@ -45,7 +45,7 @@ function RunTabButton({
       end={end}
       color={isActive ? "blue" : "gray"}
       outline={!isActive}
-      className={`inline-flex items-center gap-2 ${
+      className={`inline-flex items-center gap-2 w-1/6 ${
         isActive ? "border border-blue-600" : "border border-gray-300 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
       }`}
     >
@@ -67,7 +67,7 @@ export function RunTabGroup({
   return (
     <ButtonGroup
       outline
-      className="mb-4 flex-wrap rounded-lg border border-gray-300 shadow-sm"
+      className="mb-4 flex-wrap rounded-lg border border-gray-300 shadow-sm w-full"
       data-testid="run-tab-group"
     >
       {RUN_TABS.map((tab) => (
