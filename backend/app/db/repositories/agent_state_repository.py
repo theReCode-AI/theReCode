@@ -20,13 +20,31 @@ class AgentStateRepository(BaseRepository):
 
     def upsert(self, state: RunAgentState) -> RunAgentState:
         document = state.model_dump(mode="json", by_alias=True)
-        document["_id"] = ObjectId(state.id)
+        document.pop("id", None)
         document["run_id"] = ObjectId(state.run_id)
-        self.collection.replace_one({"run_id": ObjectId(state.run_id)}, document, upsert=True)
-        return state
+        preserved_id = self.replace_one_preserving_id(
+            filter_query={"run_id": ObjectId(state.run_id)},
+            document=document,
+            new_id=state.id,
+        )
+        return state.model_copy(update={"id": preserved_id})
 
     def initialize(self, run_id: str) -> RunAgentState:
+        existing = self.get_by_run(run_id)
         now = datetime.now(UTC)
+        if existing is not None:
+            return self.upsert(
+                existing.model_copy(
+                    update={
+                        "status": OrchestrationStatus.PENDING,
+                        "progress": 0,
+                        "error_message": None,
+                        "approval_required": False,
+                        "updated_at": now,
+                    },
+                ),
+            )
+
         state = RunAgentState(
             _id=str(ObjectId()),
             run_id=run_id,

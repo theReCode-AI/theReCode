@@ -140,8 +140,8 @@ export function RunDetailPage() {
   const approvals = approvalsQuery.data ?? [];
   const riskDecisions = riskDecisionsQuery.data ?? [];
   const approvalRequired = Boolean(
-    state?.approval_required ||
-      run.status === "AWAITING_APPROVAL" ||
+    run.status === "AWAITING_APPROVAL" ||
+      countPendingApprovals(approvals) > 0 ||
       hasUnpreparedApprovalTriggers(approvals, riskDecisions),
   );
   const pendingApprovalCount = countPendingApprovals(approvals);

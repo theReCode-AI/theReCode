@@ -18,6 +18,7 @@ class RunOrchestrationRequest(BaseModel):
     branch: str | None = Field(default=None, min_length=1)
     skip_clone: bool = False
     resume_after_approval: bool = False
+    replan_after_feedback: bool = False
     agents: list[DiagnosticAgentName] | None = Field(
         default=None,
         description="Optional subset of diagnostic agents to run.",

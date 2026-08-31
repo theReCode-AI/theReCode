@@ -13,6 +13,7 @@ from app.db.repositories.agent_event_repository import AgentEventRepository
 from app.db.repositories.approval_repository import ApprovalRepository
 from app.db.repositories.fix_attempt_repository import FixAttemptRepository
 from app.db.repositories.fix_plan_repository import FixPlanRepository
+from app.db.repositories.git_credential_repository import GitCredentialNotFoundError
 from app.db.repositories.git_operation_repository import (
     GitOperationNotFoundError,
     GitOperationRepository,
@@ -34,11 +35,25 @@ from app.schemas.git_finalization import GitOperationResponse, RunGitFinalizatio
 from app.services.git_credential_service import GitCredentialService
 from app.services.project_service import ProjectService
 from app.services.run_service import RunService
+from app.workspace.exceptions import WorkspaceNotFoundError
 
 logger = get_logger(__name__)
 
 _GIT_FINALIZATION_ALLOWED_STATUSES = frozenset(
     {
+        RunStatus.FINAL_REVIEW,
+        RunStatus.REPORTING,
+        RunStatus.COMPLETED,
+        RunStatus.FAILED,
+    },
+)
+
+_GIT_FORCE_FINALIZATION_ALLOWED_STATUSES = frozenset(
+    {
+        RunStatus.FIXING,
+        RunStatus.VERIFYING,
+        RunStatus.SELF_CORRECTING,
+        RunStatus.PEER_REVIEW,
         RunStatus.FINAL_REVIEW,
         RunStatus.REPORTING,
         RunStatus.COMPLETED,
@@ -95,12 +110,14 @@ class GitFinalizationService:
         user_id: str,
         run_id: str,
         base_branch: str | None = None,
+        *,
+        force: bool = False,
     ) -> RunGitFinalizationResponse:
         run = self._run_repository.get_by_id_for_user(run_id, user_id)
         if run is None:
             raise RunNotFoundError(run_id)
 
-        self._validate_prerequisites(run_id, run.status, run.repository_id)
+        self._validate_prerequisites(run_id, run.status, run.repository_id, force=force)
         repository = self._project_service.get_repository(
             user_id,
             run.project_id,
@@ -109,16 +126,27 @@ class GitFinalizationService:
         patch_plans = self._fix_plan_repository.list_by_run(run_id)
         fix_attempts = self._fix_attempt_repository.list_by_run(run_id)
         changed_files = _collect_changed_files(fix_attempts)
-        if not changed_files:
+        if not changed_files and not force:
             raise RunNotReadyForGitFinalizationError(
                 "Applied fix attempts with changed files are required before git finalization",
             )
 
-        workspace = self._run_service.get_workspace_for_run(user_id, run_id)
-        access_token = self._git_credential_service.get_access_token(
-            user_id,
-            repository.provider,
-        )
+        try:
+            workspace = self._run_service.get_workspace_for_run(user_id, run_id)
+        except WorkspaceNotFoundError as exc:
+            raise RunNotReadyForGitFinalizationError(
+                "Run workspace is missing. Clone the repository from the run Overview page, then retry push.",
+            ) from exc
+
+        try:
+            access_token = self._git_credential_service.get_access_token(
+                user_id,
+                repository.provider,
+            )
+        except GitCredentialNotFoundError as exc:
+            raise RunNotReadyForGitFinalizationError(
+                f"No {repository.provider} access token saved. Add your personal access token under Settings, then retry push.",
+            ) from exc
         provider = self._provider_factory.get_provider(repository.provider)
         validation = provider.validate_repository(repository.full_name, access_token)
         if not validation.valid:
@@ -141,13 +169,15 @@ class GitFinalizationService:
             peer_reviews=self._peer_review_result_repository.list_by_run(run_id),
             self_correction_cycles=self._self_correction_cycle_repository.list_by_run(run_id),
             changed_files=changed_files,
+            force=force,
         )
         result = self._finalization_agent.finalize(context, provider, access_token)
+        committed_files = result.changed_files if result.changed_files is not None else changed_files
         operation = self._persist_operation(
             run,
             repository.id,
             repository.provider,
-            changed_files,
+            committed_files,
             result,
             workspace.baseline,
         )
@@ -161,7 +191,10 @@ class GitFinalizationService:
         else:
             self._run_repository.update_status(run_id, user_id, RunStatus.FAILED)
             self._emit_git_finalization_failed(run_id, operation.failure_summary)
-            run_status = RunStatus.FAILED.value
+            raise RunNotReadyForGitFinalizationError(
+                result.failure_summary
+                or f"Git finalization failed with status {result.status.value}",
+            )
 
         completed_at = datetime.now(UTC)
         response = RunGitFinalizationResponse(
@@ -211,8 +244,15 @@ class GitFinalizationService:
         run_id: str,
         status: RunStatus,
         repository_id: str | None,
+        *,
+        force: bool = False,
     ) -> None:
-        if status not in _GIT_FINALIZATION_ALLOWED_STATUSES:
+        if force:
+            if status not in _GIT_FORCE_FINALIZATION_ALLOWED_STATUSES:
+                raise RunNotReadyForGitFinalizationError(
+                    f"Cannot force push while run is {status.value}",
+                )
+        elif status not in _GIT_FINALIZATION_ALLOWED_STATUSES:
             raise RunNotReadyForGitFinalizationError(
                 "Run must complete peer review before git finalization",
             )
@@ -245,6 +285,9 @@ class GitFinalizationService:
                 "Rejected approvals block git finalization",
             )
 
+        if force:
+            return
+
         peer_reviews = self._peer_review_result_repository.list_by_run(run_id)
         if peer_reviews and any(
             review.verdict != PeerReviewVerdict.APPROVED for review in peer_reviews
@@ -264,15 +307,16 @@ class GitFinalizationService:
             )
 
         verification_results = self._verification_result_repository.list_by_run(run_id)
-        passed_plan_ids = {
-            result.patch_plan_id
-            for result in verification_results
-            if result.status == VerificationStatus.PASSED
-        }
-        if applied_plan_ids.isdisjoint(passed_plan_ids) and peer_reviews:
-            raise RunNotReadyForGitFinalizationError(
-                "Applied fixes must pass verification before git finalization",
-            )
+        if verification_results:
+            passed_plan_ids = {
+                result.patch_plan_id
+                for result in verification_results
+                if result.status == VerificationStatus.PASSED
+            }
+            if applied_plan_ids.isdisjoint(passed_plan_ids):
+                raise RunNotReadyForGitFinalizationError(
+                    "Applied fixes must pass verification before git finalization",
+                )
 
     def _persist_operation(
         self,

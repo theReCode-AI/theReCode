@@ -18,6 +18,7 @@ from app.models.chat_message import ChatMessage, ChatRole
 from app.models.run import Run
 from app.schemas.chat import ChatMessageResponse, ChatSendResponse
 from app.services.gemini_chat_client import GeminiChatClient, GeminiChatError
+from app.services.gemini_credential_service import GeminiCredentialService
 from app.services.project_service import ProjectService
 from app.services.run_service import RunService
 from app.workspace.artifact_reader import (
@@ -47,6 +48,7 @@ class ChatService:
         memory_repository: MemoryRepository,
         report_repository: ReportRepository,
         gemini_client: GeminiChatClient | None = None,
+        gemini_credential_service: GeminiCredentialService | None = None,
     ) -> None:
         self._settings = settings
         self._run_repository = run_repository
@@ -57,6 +59,7 @@ class ChatService:
         self._memory_repository = memory_repository
         self._report_repository = report_repository
         self._gemini_client = gemini_client or GeminiChatClient(settings)
+        self._gemini_credential_service = gemini_credential_service
 
     def list_messages(self, user_id: str, run_id: str) -> list[ChatMessageResponse]:
         self._require_run(user_id, run_id)
@@ -83,10 +86,16 @@ class ChatService:
         )
 
         try:
+            api_key = (
+                self._gemini_credential_service.try_get_api_key(user_id)
+                if self._gemini_credential_service is not None
+                else None
+            )
             assistant_text = self._gemini_client.generate_reply(
                 system_instruction=system_instruction,
                 history=history,
                 user_message=content.strip(),
+                api_key=api_key,
             )
         except GeminiChatError:
             raise

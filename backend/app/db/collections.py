@@ -19,6 +19,7 @@ APPROVALS = "approvals"
 MEMORIES = "memories"
 GIT_OPERATIONS = "git_operations"
 GIT_CREDENTIALS = "git_credentials"
+GEMINI_CREDENTIALS = "gemini_credentials"
 REPORTS = "reports"
 CHAT_MESSAGES = "chat_messages"
 
@@ -42,6 +43,7 @@ ALL_COLLECTIONS = (
     MEMORIES,
     GIT_OPERATIONS,
     GIT_CREDENTIALS,
+    GEMINI_CREDENTIALS,
     REPORTS,
     CHAT_MESSAGES,
 )

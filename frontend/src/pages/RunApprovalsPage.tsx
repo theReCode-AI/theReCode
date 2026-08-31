@@ -28,6 +28,7 @@ export function RunApprovalsPage() {
   const token = useAuthStore((state) => state.token);
   const queryClient = useQueryClient();
   const autoPrepareAttempted = useRef(false);
+  const [replanningMessage, setReplanningMessage] = useState<string | null>(null);
   const [selectedApprovalId, setSelectedApprovalId] = useState(
     approvals[0]?.approval_id ?? "",
   );
@@ -40,6 +41,7 @@ export function RunApprovalsPage() {
     approvals,
     riskDecisions,
     approvalRequired,
+    run.status,
   );
 
   const diffQuery = useQuery({
@@ -72,13 +74,18 @@ export function RunApprovalsPage() {
   }, [approvals, selectedApprovalId]);
 
   useEffect(() => {
-    if (!token || !showPrepareButton || autoPrepareAttempted.current) {
+    if (!token || !showPrepareButton || autoPrepareAttempted.current || prepareMutation.isError) {
       return;
     }
     autoPrepareAttempted.current = true;
     prepareMutation.mutate();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- auto-prepare once when triggers appear
   }, [token, showPrepareButton]);
+
+  const prepareErrorMessage =
+    prepareMutation.error instanceof Error
+      ? prepareMutation.error.message
+      : "Unable to prepare approval cards. Try again or refresh the run.";
 
   const decisionMutation = useMutation({
     mutationFn: ({
@@ -93,9 +100,16 @@ export function RunApprovalsPage() {
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ["run-approvals", run.id] });
       queryClient.invalidateQueries({ queryKey: ["run", run.id] });
+      queryClient.invalidateQueries({ queryKey: ["run-state", run.id] });
+      queryClient.invalidateQueries({ queryKey: ["run-events", run.id] });
       queryClient.setQueryData(["run", run.id], (current: typeof run | undefined) =>
         current ? { ...current, status: response.run_status } : current,
       );
+      if (response.replanning_required) {
+        setReplanningMessage(
+          "Your feedback was recorded. The pipeline is replanning automatically. Open Overview to watch progress, or click Continue pipeline if it does not resume.",
+        );
+      }
     },
   });
 
@@ -115,14 +129,24 @@ export function RunApprovalsPage() {
       <div className="mb-4 flex items-center justify-between gap-4">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Human approvals</h2>
         {showPrepareButton ? (
-          <Button disabled={prepareMutation.isPending} onClick={() => prepareMutation.mutate()}>
+          <Button
+            disabled={prepareMutation.isPending}
+            onClick={() => {
+              autoPrepareAttempted.current = true;
+              prepareMutation.mutate();
+            }}
+          >
             {prepareMutation.isPending ? "Preparing..." : "Prepare approval cards"}
           </Button>
         ) : null}
       </div>
 
       {prepareMutation.isError ? (
-        <ErrorState message="Unable to prepare approval cards. Try again or refresh the run." />
+        <ErrorState message={prepareErrorMessage} />
+      ) : null}
+
+      {replanningMessage ? (
+        <p className="mb-4 text-sm text-blue-700 dark:text-blue-300">{replanningMessage}</p>
       ) : null}
 
       {pendingCount > 0 ? (
@@ -147,10 +171,10 @@ export function RunApprovalsPage() {
               <button
                 key={approval.approval_id}
                 type="button"
-                className={`rounded-xl border p-3 text-left transition ${
+                className={`rounded-xl border bg-slate-900 p-3 text-left transition ${
                   approval.approval_id === selectedApprovalId
-                    ? "border-blue-600 bg-blue-50"
-                    : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 hover:border-gray-300"
+                    ? "border-slate-600 bg-blue-50"
+                    : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-600 hover:border-gray-300"
                 }`}
                 onClick={() => setSelectedApprovalId(approval.approval_id)}
               >

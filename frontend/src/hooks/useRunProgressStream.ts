@@ -14,16 +14,27 @@ const EVENT_INVALIDATION_MAP: Record<string, string[][]> = {
   VERIFICATION_PASSED: [["run-verifications"]],
   VERIFICATION_FAILED: [["run-verifications"]],
   RISK_ASSESSED: [["run-risk-decisions"]],
-  APPROVAL_REQUIRED: [["run-approvals"]],
+  APPROVAL_REQUIRED: [["run-approvals"], ["run-risk-decisions"]],
   HUMAN_APPROVED: [["run-approvals"], ["run"]],
   HUMAN_REJECTED: [["run-approvals"], ["run"]],
-  HUMAN_CHANGES_REQUESTED: [["run-approvals"], ["run"]],
+  HUMAN_CHANGES_REQUESTED: [["run-approvals"], ["run"], ["run-state"]],
   PEER_REVIEW_STARTED: [["run-peer-reviews"]],
   PEER_REVIEW_COMPLETED: [["run-peer-reviews"]],
   GIT_FINALIZATION_COMPLETED: [["run-git-ops"], ["run"]],
   GIT_PR_CREATED: [["run-git-ops"], ["run-report"]],
   REPORT_GENERATION_COMPLETED: [["run-report"], ["run-report-markdown"], ["run"]],
-  RUN_COMPLETED: [["run"], ["run-report"], ["run-report-markdown"], ["dashboard-runs"]],
+  RUN_COMPLETED: [
+    ["run"],
+    ["run-findings"],
+    ["run-fix-attempts"],
+    ["run-verifications"],
+    ["run-peer-reviews"],
+    ["run-approvals"],
+    ["run-git-ops"],
+    ["run-report"],
+    ["run-report-markdown"],
+    ["dashboard-runs"],
+  ],
   RUN_FAILED: [["run"], ["dashboard-runs"]],
 };
 
@@ -111,6 +122,10 @@ export function useRunProgressStream(runId: string | undefined) {
           }
           setConnectionStatus(runId, "closed");
           queryClient.invalidateQueries({ queryKey: ["run", runId] });
+          queryClient.invalidateQueries({ queryKey: ["run-fix-attempts", runId] });
+          queryClient.invalidateQueries({ queryKey: ["run-verifications", runId] });
+          queryClient.invalidateQueries({ queryKey: ["run-peer-reviews", runId] });
+          queryClient.invalidateQueries({ queryKey: ["run-git-ops", runId] });
           queryClient.invalidateQueries({ queryKey: ["run-report", runId] });
           queryClient.invalidateQueries({ queryKey: ["run-report-markdown", runId] });
         },

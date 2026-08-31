@@ -105,6 +105,44 @@ def test_applicator_skips_non_automated_change_types(
 
     assert result.skipped is True
     assert result.applied is False
+    assert "semantic remediation" in result.message
+
+
+def test_applicator_uses_semantic_rewriter_when_allowed(tmp_path: Path) -> None:
+    target = tmp_path / "src" / "auth.py"
+    target.parent.mkdir(parents=True)
+    target.write_text("TOKEN = 'hardcoded'\n", encoding="utf-8")
+
+    class StubRewriter:
+        def rewrite_files(self, patch_plan, working_root: Path) -> list[str]:
+            path = working_root / patch_plan.affected_files[0]
+            path.write_text("TOKEN = os.environ['TOKEN']\n", encoding="utf-8")
+            return [patch_plan.affected_files[0]]
+
+    applicator = FixApplicator(
+        CallableCommandRunner(lambda *_args: ProcessResult(
+            command=[],
+            cwd=".",
+            exit_code=0,
+            stdout="",
+            stderr="",
+            started_at=datetime.now(UTC),
+            ended_at=datetime.now(UTC),
+        )),
+        code_rewriter=StubRewriter(),
+    )
+    result = applicator.apply(
+        _patch_plan(
+            change_type=ChangeType.SECURITY_REMEDIATION.value,
+            files=["src/auth.py"],
+        ),
+        str(tmp_path),
+        allow_semantic_fix=True,
+    )
+
+    assert result.applied is True
+    assert result.tool == "gemini"
+    assert "os.environ" in target.read_text(encoding="utf-8")
 
 
 def test_applicator_modifies_target_file(

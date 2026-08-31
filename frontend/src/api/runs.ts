@@ -43,6 +43,28 @@ export async function getFixAttempts(runId: string, token: string): Promise<FixA
   return apiGet<FixAttempt[]>(`/runs/${runId}/fix-attempts`, token);
 }
 
+export interface CodeFixResponse {
+  run_id: string;
+  attempt_count: number;
+  applied_count: number;
+  skipped_count: number;
+  failed_count: number;
+  rolled_back_count: number;
+  run_status: string;
+}
+
+export async function applyRunFixes(
+  runId: string,
+  token: string,
+  options?: { force?: boolean },
+): Promise<CodeFixResponse> {
+  return apiPost<CodeFixResponse>(
+    `/runs/${runId}/fix`,
+    { force: options?.force ?? false },
+    token,
+  );
+}
+
 export async function getVerificationResults(
   runId: string,
   token: string,
@@ -178,7 +200,12 @@ export async function generateRunReport(
 export async function executeRun(
   runId: string,
   token: string,
-  options?: { branch?: string; skip_clone?: boolean; resume_after_approval?: boolean },
+  options?: {
+    branch?: string;
+    skip_clone?: boolean;
+    resume_after_approval?: boolean;
+    replan_after_feedback?: boolean;
+  },
 ): Promise<RunOrchestrationResponse> {
   return apiPost<RunOrchestrationResponse>(
     `/runs/${runId}/execute`,
@@ -190,11 +217,18 @@ export async function executeRun(
 export async function finalizeRunGit(
   runId: string,
   token: string,
-  baseBranch?: string,
+  options?: { baseBranch?: string; force?: boolean },
 ): Promise<RunGitFinalizationResponse> {
+  const body: Record<string, unknown> = {};
+  if (options?.baseBranch) {
+    body.base_branch = options.baseBranch;
+  }
+  if (options?.force) {
+    body.force = true;
+  }
   return apiPost<RunGitFinalizationResponse>(
     `/runs/${runId}/git/finalize`,
-    baseBranch ? { base_branch: baseBranch } : {},
+    body,
     token,
   );
 }

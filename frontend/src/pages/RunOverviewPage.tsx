@@ -3,12 +3,13 @@ import { Alert, Button, Card } from "flowbite-react";
 import { useState } from "react";
 import { useOutletContext } from "react-router-dom";
 
-import { cloneRun, executeRun, finalizeRunGit } from "@/api/runs";
+import { cloneRun, applyRunFixes, executeRun, finalizeRunGit } from "@/api/runs";
 import { EmptyState } from "@/components/common/EmptyState";
 import { AgentTimeline } from "@/components/runs/AgentTimeline";
 import { RunSummaryGrid } from "@/components/runs/RunSummaryGrid";
 import type { RunOutletContext } from "@/pages/RunDetailPage";
 import { useAuthStore } from "@/stores/authStore";
+import { getGitPushEligibility } from "@/utils/gitPush";
 
 export function RunOverviewPage() {
   const {
@@ -27,8 +28,6 @@ export function RunOverviewPage() {
   const queryClient = useQueryClient();
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [pushMessage, setPushMessage] = useState<string | null>(null);
-  const [pushError, setPushError] = useState<string | null>(null);
 
   const cloneMutation = useMutation({
     mutationFn: () => cloneRun(run.id, token!),
@@ -48,8 +47,52 @@ export function RunOverviewPage() {
     },
   });
 
+  const pushMutation = useMutation({
+    mutationFn: async (options?: { force?: boolean }) => {
+      if (!token) {
+        throw new Error("You must be signed in to push changes.");
+      }
+      const result = await finalizeRunGit(run.id, token, { force: options?.force });
+      if (result.operation.status !== "pr_created") {
+        throw new Error(
+          result.operation.failure_summary ??
+            `Git push failed with status ${result.operation.status}.`,
+        );
+      }
+      return result;
+    },
+    onSuccess: (result) => {
+      setActionError(null);
+      const prUrl = result.operation.pull_request_url;
+      setActionMessage(
+        prUrl
+          ? `Pushed to GitHub on branch ${result.operation.branch_name ?? `fix/${run.id}`}. Pull request created.`
+          : "Git push completed successfully.",
+      );
+      queryClient.invalidateQueries({ queryKey: ["run", run.id] });
+      queryClient.invalidateQueries({ queryKey: ["run-git-ops", run.id] });
+      queryClient.invalidateQueries({ queryKey: ["run-events", run.id] });
+      queryClient.invalidateQueries({ queryKey: ["run-report", run.id] });
+    },
+    onError: (error: Error) => {
+      setActionMessage(null);
+      setActionError(error.message);
+      queryClient.invalidateQueries({ queryKey: ["run", run.id] });
+      queryClient.invalidateQueries({ queryKey: ["run-git-ops", run.id] });
+    },
+  });
+
   const executeMutation = useMutation({
-    mutationFn: () => executeRun(run.id, token!),
+    mutationFn: (options?: {
+      replanAfterFeedback?: boolean;
+      resumeAfterApproval?: boolean;
+      skipClone?: boolean;
+    }) =>
+      executeRun(run.id, token!, {
+        skip_clone: options?.skipClone,
+        replan_after_feedback: options?.replanAfterFeedback,
+        resume_after_approval: options?.resumeAfterApproval,
+      }),
     onSuccess: () => {
       setActionError(null);
       setActionMessage("Autonomous pipeline started. Live updates will appear below.");
@@ -62,57 +105,64 @@ export function RunOverviewPage() {
     },
   });
 
-  const pushMutation = useMutation({
-    mutationFn: () => {
-      if (!token) {
-        throw new Error("You must be signed in to push changes.");
-      }
-      return finalizeRunGit(run.id, token);
-    },
-    onSuccess: (result) => {
-      setPushError(null);
-      const prUrl = result.operation.pull_request_url;
-      setPushMessage(
-        prUrl
-          ? `Changes pushed to branch ${result.operation.branch_name ?? `fix/${run.id}`}. Pull request created.`
-          : `Git finalization completed with status ${result.operation.status}.`,
-      );
-      queryClient.invalidateQueries({ queryKey: ["run", run.id] });
-      queryClient.invalidateQueries({ queryKey: ["run-git-ops", run.id] });
-      queryClient.invalidateQueries({ queryKey: ["run-events", run.id] });
-      queryClient.invalidateQueries({ queryKey: ["run-report", run.id] });
-    },
-    onError: (error: Error) => {
-      setPushMessage(null);
-      setPushError(error.message);
-    },
-  });
-
   const passedVerifications = verifications.filter(
     (result) => result.status === "passed",
   ).length;
-  const pendingApprovals = approvals.filter((approval) => approval.status === "pending").length;
-  const rejectedApprovals = approvals.filter((approval) => approval.status === "rejected").length;
-  const appliedFixAttempts = fixAttempts.filter((attempt) => attempt.status === "applied").length;
-  const peerReviewApproved =
-    peerReviews.length === 0 ||
-    peerReviews.every((review) => review.verdict === "approved");
   const latestGitOp = gitOps[0];
   const hasSuccessfulPush = gitOps.some((operation) => operation.status === "pr_created");
-  const pushReadyStatuses = ["FINAL_REVIEW", "REPORTING", "COMPLETED", "FAILED"];
-  const canClone = Boolean(run.repository_id) && run.status === "CREATED";
-  const canExecute = Boolean(run.repository_id) && ["CREATED", "FAILED"].includes(run.status);
-  const canPushGit =
+  const pushEligibility = getGitPushEligibility({
+    run,
+    fixAttempts,
+    verifications,
+    approvals,
+    peerReviews,
+    hasSuccessfulPush,
+  });
+  const { canPush: canPushGit, canForcePush, blockedReason: pushBlockedReason, forcePushHint, pushableFixAttempts } =
+    pushEligibility;
+
+  const skippedFixAttempts = fixAttempts.filter((attempt) => attempt.status === "skipped");
+  const canRetryFixes =
     Boolean(run.repository_id) &&
-    pushReadyStatuses.includes(run.status) &&
-    pendingApprovals === 0 &&
-    rejectedApprovals === 0 &&
-    appliedFixAttempts > 0 &&
-    peerReviewApproved &&
-    !hasSuccessfulPush;
+    fixAttempts.length > 0 &&
+    pushableFixAttempts.length === 0 &&
+    skippedFixAttempts.length > 0 &&
+    ["COMPLETED", "FINAL_REVIEW", "REPORTING", "FAILED", "FIXING"].includes(run.status);
+
+  const retryFixesMutation = useMutation({
+    mutationFn: () => {
+      if (!token) {
+        throw new Error("You must be signed in to retry code fixes.");
+      }
+      return applyRunFixes(run.id, token, { force: true });
+    },
+    onSuccess: (result) => {
+      setActionError(null);
+      setActionMessage(
+        result.applied_count > 0
+          ? `Applied ${result.applied_count} fix attempt(s). Check the Diff tab for changes.`
+          : `Code fix finished with ${result.skipped_count} skipped and ${result.failed_count} failed attempt(s).`,
+      );
+      queryClient.invalidateQueries({ queryKey: ["run", run.id] });
+      queryClient.invalidateQueries({ queryKey: ["run-fix-attempts", run.id] });
+      queryClient.invalidateQueries({ queryKey: ["run-events", run.id] });
+    },
+    onError: (error: Error) => {
+      setActionMessage(null);
+      setActionError(error.message);
+    },
+  });
+
+  const isRunComplete = run.status === "COMPLETED";
+  const needsPipelineContinue = run.status === "PLANNING" || run.status === "FIXING";
+  const canClone = Boolean(run.repository_id) && run.status === "CREATED";
+  const canExecute =
+    Boolean(run.repository_id) &&
+    (["CREATED", "FAILED"].includes(run.status) || needsPipelineContinue);
   const isPushing = run.status === "PUSHING" || pushMutation.isPending;
   const awaitingApproval = run.status === "AWAITING_APPROVAL";
   const pushBranchName = `fix/${run.id}`;
+  const pendingApprovals = approvals.filter((approval) => approval.status === "pending").length;
 
   return (
     <>
@@ -123,89 +173,102 @@ export function RunOverviewPage() {
         ) : (
           <>
             <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-              Clone pulls the GitHub/GitLab repo into the run workspace on this server. Save your
-              personal access token under Settings first.
+              Clone pulls the GitHub/GitLab repo into the run workspace. When the run completes,
+              click <strong>Push to GitHub</strong> to create branch{" "}
+              <strong>{pushBranchName}</strong>, push your improved code, and open a pull request.
+              Save your personal access token under Settings first.
             </p>
             <div className="flex flex-wrap gap-3">
               <Button
                 color="light"
-                disabled={!canClone || cloneMutation.isPending || executeMutation.isPending}
+                disabled={!canClone || cloneMutation.isPending || executeMutation.isPending || isPushing}
                 onClick={() => cloneMutation.mutate()}
               >
                 {cloneMutation.isPending ? "Cloning..." : "Clone repository"}
               </Button>
               <Button
-                disabled={!canExecute || executeMutation.isPending || cloneMutation.isPending}
-                onClick={() => executeMutation.mutate()}
+                disabled={!canExecute || executeMutation.isPending || cloneMutation.isPending || isPushing || retryFixesMutation.isPending}
+                onClick={() =>
+                  executeMutation.mutate(
+                    run.status === "PLANNING"
+                      ? { replanAfterFeedback: true }
+                      : run.status === "FIXING"
+                        ? { resumeAfterApproval: true }
+                        : undefined,
+                  )
+                }
               >
-                {executeMutation.isPending ? "Starting..." : "Run full pipeline"}
+                {executeMutation.isPending
+                  ? "Starting..."
+                  : needsPipelineContinue
+                    ? "Continue pipeline"
+                    : "Run full pipeline"}
               </Button>
+              {canRetryFixes ? (
+                <Button
+                  color="warning"
+                  disabled={retryFixesMutation.isPending || isPushing}
+                  onClick={() => retryFixesMutation.mutate()}
+                >
+                  {retryFixesMutation.isPending ? "Applying fixes..." : "Apply fixes now"}
+                </Button>
+              ) : null}
+              <Button
+                color="success"
+                disabled={!canPushGit || isPushing || cloneMutation.isPending || executeMutation.isPending || retryFixesMutation.isPending}
+                title={pushBlockedReason ?? undefined}
+                onClick={() => pushMutation.mutate({})}
+              >
+                {isPushing ? "Pushing to GitHub..." : "Push to GitHub"}
+              </Button>
+              {canForcePush ? (
+                <Button
+                  color="warning"
+                  disabled={isPushing || cloneMutation.isPending || executeMutation.isPending || retryFixesMutation.isPending}
+                  title={forcePushHint ?? "Push workspace changes without applied fixes"}
+                  onClick={() => pushMutation.mutate({ force: true })}
+                >
+                  {isPushing ? "Pushing to GitHub..." : "Push to GitHub anyway"}
+                </Button>
+              ) : null}
             </div>
+            {isRunComplete && canPushGit ? (
+              <p className="mt-3 text-sm text-green-700 dark:text-green-400">
+                Run completed. Ready to push fixes to GitHub on branch{" "}
+                <strong>{pushBranchName}</strong>.
+              </p>
+            ) : null}
+            {hasSuccessfulPush && latestGitOp ? (
+              <div className="mt-4 space-y-1 text-sm text-gray-700 dark:text-gray-300">
+                <p>
+                  Pushed to <strong>{latestGitOp.branch_name ?? pushBranchName}</strong>
+                  {latestGitOp.commit_sha ? ` (${latestGitOp.commit_sha.slice(0, 8)})` : ""}.
+                </p>
+                {latestGitOp.pull_request_url ? (
+                  <p>
+                    <a
+                      href={latestGitOp.pull_request_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-medium text-blue-600 hover:underline"
+                    >
+                      Open pull request
+                    </a>
+                  </p>
+                ) : null}
+              </div>
+            ) : pushBlockedReason ? (
+              <div className="mt-3 space-y-1 text-sm text-gray-500 dark:text-gray-400">
+                <p>{pushBlockedReason}</p>
+                {canForcePush && forcePushHint ? (
+                  <p className="text-amber-700 dark:text-amber-400">{forcePushHint}</p>
+                ) : null}
+              </div>
+            ) : null}
           </>
         )}
         {actionMessage ? <Alert color="info" className="mt-4">{actionMessage}</Alert> : null}
         {actionError ? <Alert color="failure" className="mt-4">{actionError}</Alert> : null}
-      </Card>
-
-      <Card className="mb-4">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Git push</h2>
-        {!run.repository_id ? (
-          <EmptyState message="Link a repository on the project page before pushing changes." />
-        ) : hasSuccessfulPush && latestGitOp ? (
-          <div className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
-            <p>
-              Changes were pushed to branch{" "}
-              <strong>{latestGitOp.branch_name ?? pushBranchName}</strong>
-              {latestGitOp.commit_sha ? ` (${latestGitOp.commit_sha.slice(0, 8)})` : ""}.
-            </p>
-            {latestGitOp.pull_request_url ? (
-              <p>
-                <a
-                  href={latestGitOp.pull_request_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="font-medium text-blue-600 hover:underline"
-                >
-                  Open pull request
-                </a>
-              </p>
-            ) : null}
-          </div>
-        ) : (
-          <>
-            <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-              After the pipeline reaches final review, push applied fixes to branch{" "}
-              <strong>{pushBranchName}</strong> and open a pull request. Save your Git
-              personal access token under Settings first.
-            </p>
-            <Button
-              color="success"
-              disabled={!canPushGit || isPushing}
-              onClick={() => pushMutation.mutate()}
-            >
-              {isPushing ? "Pushing..." : "Push to GitHub"}
-            </Button>
-            {!canPushGit && run.status !== "PUSHING" ? (
-              <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                {!pushReadyStatuses.includes(run.status)
-                  ? `Run must finish peer review before pushing (current: ${run.status}).`
-                  : pendingApprovals > 0
-                    ? "Resolve pending approvals before pushing."
-                    : rejectedApprovals > 0
-                      ? "Rejected approvals block git push."
-                      : appliedFixAttempts === 0
-                        ? "At least one applied fix attempt is required."
-                        : !peerReviewApproved
-                          ? "Peer review must be approved before pushing."
-                          : hasSuccessfulPush
-                            ? "A pull request has already been created for this run."
-                            : "Git push is not available yet."}
-              </p>
-            ) : null}
-            {pushMessage ? <Alert color="info" className="mt-4">{pushMessage}</Alert> : null}
-            {pushError ? <Alert color="failure" className="mt-4">{pushError}</Alert> : null}
-          </>
-        )}
       </Card>
 
       <Card className="mb-4">
@@ -217,13 +280,13 @@ export function RunOverviewPage() {
         {awaitingApproval ? (
           <Alert color="warning" className="mb-4">
             The pipeline is paused until you review and approve the required changes on the
-            Approvals tab.
+            Approvals tab. After you approve, the run continues automatically into code fixing.
           </Alert>
         ) : null}
         <RunSummaryGrid
           items={[
             { label: "Findings", value: findings.length },
-            { label: "Fix attempts", value: fixAttempts.length },
+            { label: "Fix attempts", value: fixAttempts.length, hint: `${pushableFixAttempts.length} pushable` },
             {
               label: "Verification",
               value: `${passedVerifications}/${verifications.length || 0}`,

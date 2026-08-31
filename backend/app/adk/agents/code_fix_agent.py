@@ -56,8 +56,16 @@ class CodeFixAgent:
         patch_plan: PatchPlan,
         risk_decision: RiskDecision,
         applicator: FixApplicator,
+        *,
+        risk_gate_approved: bool = False,
+        force_apply: bool = False,
     ) -> FixExecutionResult:
-        if not risk_decision.autonomous_fix_allowed:
+        allowed = (
+            risk_decision.autonomous_fix_allowed
+            or risk_gate_approved
+            or force_apply
+        )
+        if not allowed:
             return FixExecutionResult(
                 status=FixAttemptStatus.SKIPPED,
                 planned_files=patch_plan.affected_files,
@@ -77,7 +85,16 @@ class CodeFixAgent:
         before_hashes = snapshot_tree_hashes(working_root)
         self._backup_manager.backup_working_tree(working_root, backup_root)
 
-        application = applicator.apply(patch_plan, str(working_root))
+        application = applicator.apply(
+            patch_plan,
+            str(working_root),
+            approval_gated=risk_gate_approved or force_apply,
+            allow_semantic_fix=(
+                risk_decision.autonomous_fix_allowed
+                or risk_gate_approved
+                or force_apply
+            ),
+        )
         if application.skipped:
             return FixExecutionResult(
                 status=FixAttemptStatus.SKIPPED,

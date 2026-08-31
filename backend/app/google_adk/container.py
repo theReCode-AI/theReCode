@@ -11,6 +11,7 @@ from app.db.repositories.run_repository import RunRepository
 from app.services.code_fix_service import CodeFixService
 from app.services.diagnostic_agent_service import DiagnosticAgentService
 from app.services.fix_planner_service import FixPlannerService
+from app.services.gemini_credential_service import GeminiCredentialService
 from app.services.git_finalization_service import GitFinalizationService
 from app.services.git_service import GitService
 from app.services.human_approval_service import HumanApprovalService
@@ -47,6 +48,7 @@ class ServiceContainer:
     report_service: ReportService
     event_repository: AgentEventRepository
     state_repository: AgentStateRepository
+    gemini_credential_service: GeminiCredentialService | None = None
 
 
 _service_container: ContextVar[ServiceContainer | None] = ContextVar(

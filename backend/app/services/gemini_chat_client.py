@@ -30,15 +30,20 @@ class GeminiChatClient:
         system_instruction: str,
         history: list[ChatMessage],
         user_message: str,
+        api_key: str | None = None,
     ) -> str:
-        bootstrap_google_genai(self._settings)
+        bootstrap_google_genai(self._settings, api_key=api_key)
         try:
-            ensure_google_adk_configured(self._settings)
+            ensure_google_adk_configured(self._settings, api_key=api_key)
         except GoogleAdkConfigurationError as exc:
             raise GeminiChatError(str(exc)) from exc
 
-        api_key = (self._settings.google_api_key or "").strip() or None
-        client = genai.Client(api_key=api_key)
+        resolved_key = (api_key or "").strip() or None
+        if resolved_key is None:
+            from app.google_adk.bootstrap import resolve_api_key
+
+            resolved_key = resolve_api_key(self._settings) or None
+        client = genai.Client(api_key=resolved_key)
         contents = self._build_contents(history, user_message)
 
         try:

@@ -15,8 +15,8 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": {
-        // target: "http://localhost:8000",
-        target: "https://therecode-backend-api-683080071974.europe-west1.run.app/",
+        // target: process.env.VITE_BACKEND_PROXY_TARGET ?? "http://localhost:8000",
+        target:"https://therecode-backend-api-683080071974.europe-west1.run.app/",
         changeOrigin: true,
       },
     },

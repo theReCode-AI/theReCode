@@ -70,9 +70,49 @@ class LocalGitClient:
             )
         return GitOperationResult(success=True)
 
-    def commit(self, repo_path: Path, message: str) -> CommitResult:
+    def stage_all(self, repo_path: Path) -> GitOperationResult:
         result = subprocess.run(
-            ["git", "commit", "-m", message],
+            ["git", "add", "-A"],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            return GitOperationResult(
+                success=False,
+                message=result.stderr.strip() or "Failed to stage files",
+            )
+        return GitOperationResult(success=True)
+
+    def list_changed_files(self, repo_path: Path) -> list[str]:
+        result = subprocess.run(
+            ["git", "status", "--porcelain"],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode != 0:
+            return []
+
+        changed_files: list[str] = []
+        for line in result.stdout.splitlines():
+            if len(line) < 4:
+                continue
+            path = line[3:].strip()
+            if " -> " in path:
+                path = path.split(" -> ", maxsplit=1)[1]
+            if path:
+                changed_files.append(path)
+        return changed_files
+
+    def commit(self, repo_path: Path, message: str, *, allow_empty: bool = False) -> CommitResult:
+        command = ["git", "commit", "-m", message]
+        if allow_empty:
+            command.insert(2, "--allow-empty")
+        result = subprocess.run(
+            command,
             cwd=repo_path,
             capture_output=True,
             text=True,

@@ -18,11 +18,15 @@ class ReportRepository(BaseRepository):
 
     def upsert_for_run(self, report: RunReport) -> RunReport:
         document = report.model_dump(mode="json")
-        document["_id"] = ObjectId(report.report_id)
+        document.pop("report_id", None)
         document["run_id"] = ObjectId(report.run_id)
         document["project_id"] = ObjectId(report.project_id)
-        self.collection.replace_one({"run_id": ObjectId(report.run_id)}, document, upsert=True)
-        return report
+        preserved_report_id = self.replace_one_preserving_id(
+            filter_query={"run_id": ObjectId(report.run_id)},
+            document=document,
+            new_id=report.report_id,
+        )
+        return report.model_copy(update={"report_id": preserved_report_id})
 
     def get_by_run(self, run_id: str) -> RunReport | None:
         document = self.collection.find_one({"run_id": ObjectId(run_id)})

@@ -35,6 +35,7 @@ class GitFinalizationContext:
     peer_reviews: list[PeerReviewResult]
     self_correction_cycles: list[SelfCorrectionCycle]
     changed_files: list[str]
+    force: bool = False
 
 
 @dataclass(frozen=True)
@@ -49,6 +50,7 @@ class GitFinalizationResult:
     title: str | None = None
     description: str | None = None
     failure_summary: str | None = None
+    changed_files: list[str] | None = None
 
 
 class GitFinalizationEngine:
@@ -66,12 +68,16 @@ class GitFinalizationEngine:
         provider: GitProviderClient,
         access_token: str,
     ) -> GitFinalizationResult:
-        git_root = self._prepare_git_root(context.workspace, context.changed_files)
+        changed_files = list(context.changed_files)
+        git_root = self._prepare_git_root(context.workspace, changed_files)
         if git_root is None:
             return GitFinalizationResult(
                 status=GitOperationStatus.FAILED,
                 failure_summary="Repository is not initialized for git operations",
             )
+
+        if context.force and not changed_files:
+            self._sync_working_tree(context.workspace.working, context.workspace.repository)
 
         branch_name = build_branch_name(context.run_id, context.patch_plans)
         base_branch = (
@@ -89,7 +95,13 @@ class GitFinalizationEngine:
                 failure_summary=branch_result.message,
             )
 
-        stage_result = self._local_git.stage_files(git_root, context.changed_files)
+        if context.force and not changed_files:
+            stage_result = self._local_git.stage_all(git_root)
+            if stage_result.success:
+                changed_files = self._local_git.list_changed_files(git_root)
+        else:
+            stage_result = self._local_git.stage_files(git_root, changed_files)
+
         if not stage_result.success:
             return GitFinalizationResult(
                 status=GitOperationStatus.FAILED,
@@ -100,7 +112,11 @@ class GitFinalizationEngine:
 
         title = build_pull_request_title(context.patch_plans, context.run_id)
         commit_message = f"{title}\n\nAutomated remediation by theReCode."
-        commit_result = self._local_git.commit(git_root, commit_message)
+        commit_result = self._local_git.commit(
+            git_root,
+            commit_message,
+            allow_empty=context.force and not changed_files,
+        )
         if not commit_result.success:
             return GitFinalizationResult(
                 status=GitOperationStatus.FAILED,
@@ -136,7 +152,7 @@ class GitFinalizationEngine:
                 verification_results=context.verification_results,
                 peer_reviews=context.peer_reviews,
                 self_correction_cycles=context.self_correction_cycles,
-                changed_files=context.changed_files,
+                changed_files=changed_files,
             ),
         )
         pr_result = provider.create_pull_request(
@@ -169,6 +185,7 @@ class GitFinalizationEngine:
             pull_request_number=pr_result.number,
             title=title,
             description=description,
+            changed_files=changed_files,
         )
 
     def _prepare_git_root(
@@ -193,6 +210,21 @@ class GitFinalizationEngine:
                 git_root = workspace.repository
 
         return git_root
+
+    @staticmethod
+    def _sync_working_tree(source_root: Path, target_root: Path) -> None:
+        if not source_root.is_dir():
+            return
+
+        for path in source_root.rglob("*"):
+            if not path.is_file():
+                continue
+            relative_path = path.relative_to(source_root)
+            if relative_path.parts and relative_path.parts[0] == ".git":
+                continue
+            destination = target_root / relative_path
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, destination)
 
     @staticmethod
     def _sync_changed_files(source_root: Path, target_root: Path, changed_files: list[str]) -> None:

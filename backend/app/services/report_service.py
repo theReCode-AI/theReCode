@@ -43,6 +43,7 @@ from app.schemas.report import (
 from app.services.baseline_scan_service import BASELINE_SUMMARY_NAME
 from app.services.project_service import ProjectService
 from app.services.run_service import RunService
+from app.workspace.exceptions import WorkspaceNotFoundError
 from app.workspace.artifact_reader import (
     WorkspaceArtifactAccessError,
     WorkspaceArtifactNotFoundError,
@@ -207,19 +208,30 @@ class ReportService:
     def get_run_report(self, user_id: str, run_id: str) -> RunReportResponse | None:
         if self._run_repository.get_by_id_for_user(run_id, user_id) is None:
             raise RunNotFoundError(run_id)
-        report = self._report_repository.get_by_run(run_id)
-        if report is None:
-            report = self._load_report_from_workspace(user_id, run_id)
+
+        report = self._get_persisted_report(user_id, run_id)
         if report is None:
             return None
-        return RunReportResponse.model_validate(report.model_dump())
+
+        try:
+            return RunReportResponse.model_validate(report.model_dump())
+        except Exception as exc:
+            logger.exception(
+                "Stored run report failed validation",
+                extra={"run_id": run_id, "user_id": user_id},
+            )
+            raise RunReportNotFoundError(run_id) from exc
 
     def get_run_report_markdown(self, user_id: str, run_id: str) -> RunReportMarkdownResponse:
         report = self.get_run_report(user_id, run_id)
         if report is None:
             raise RunReportNotFoundError(run_id)
 
-        workspace = self._run_service.get_workspace_for_run(user_id, run_id)
+        try:
+            workspace = self._run_service.get_workspace_for_run(user_id, run_id)
+        except WorkspaceNotFoundError as exc:
+            raise RunReportNotFoundError(run_id) from exc
+
         try:
             markdown = read_workspace_text_file(workspace.root, report.markdown_path)
         except (WorkspaceArtifactNotFoundError, WorkspaceArtifactAccessError) as exc:
@@ -230,6 +242,12 @@ class ReportService:
             run_id=run_id,
             markdown=markdown,
         )
+
+    def _get_persisted_report(self, user_id: str, run_id: str) -> RunReport | None:
+        report = self._report_repository.get_by_run(run_id)
+        if report is not None:
+            return report
+        return self._load_report_from_workspace(user_id, run_id)
 
     def _validate_prerequisites(
         self,
@@ -323,7 +341,11 @@ class ReportService:
         )
 
     def _load_report_from_workspace(self, user_id: str, run_id: str) -> RunReport | None:
-        workspace = self._run_service.get_workspace_for_run(user_id, run_id)
+        try:
+            workspace = self._run_service.get_workspace_for_run(user_id, run_id)
+        except WorkspaceNotFoundError:
+            return None
+
         artifact_path = workspace.baseline / RUN_REPORT_ARTIFACT_NAME
         if not artifact_path.is_file():
             return None

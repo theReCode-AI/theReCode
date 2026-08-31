@@ -234,3 +234,23 @@ def test_get_run_report_loads_from_workspace_artifact_when_db_empty(report_stack
     assert response.final_health_score == 82.0
     assert report_repository.get_by_run(run.id) is not None
     report_agent.generate.assert_not_called()
+
+
+def test_get_run_report_returns_none_when_workspace_missing(report_stack) -> None:
+    (
+        service,
+        run_service,
+        project_service,
+        _workspace_manager,
+        _run_repository,
+        _git_operation_repository,
+        report_repository,
+        _event_repository,
+        _report_agent,
+    ) = report_stack
+    user_id = str(ObjectId())
+    project = project_service.create_project(user_id, ProjectCreate(name="Report Project"))
+    run = run_service.create_run(user_id, RunCreate(project_id=project.id))
+
+    assert report_repository.get_by_run(run.id) is None
+    assert service.get_run_report(user_id, run.id) is None

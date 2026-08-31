@@ -13,7 +13,6 @@ from app.models.agent_event import AgentEventType
 from app.models.agent_state import OrchestrationStatus
 from app.models.run import RunStatus
 from app.services.git_finalization_service import RunNotReadyForGitFinalizationError
-from app.google_adk.errors import WorkflowPausedForApprovalError
 from app.services.human_approval_service import RunNotAwaitingApprovalError
 from app.services.regression_test_service import PassedVerificationsRequiredError
 from app.services.report_service import RunNotReadyForReportError
@@ -202,6 +201,10 @@ def gate_risk_approval() -> dict[str, object]:
     approval_service = services.human_approval_service
 
     if not approval_service.has_blocking_risk_gate_approval(context.run_id):
+        services.state_repository.update_fields(
+            context.run_id,
+            approval_required=False,
+        )
         return {"status": "passed"}
 
     _update_stage(OrchestrationStage.HUMAN_APPROVAL, progress=72)
@@ -220,16 +223,19 @@ def gate_risk_approval() -> dict[str, object]:
     services.state_repository.update_fields(
         context.run_id,
         approval_required=True,
+        status=OrchestrationStatus.RUNNING,
+        current_stage=OrchestrationStage.HUMAN_APPROVAL.value,
+        error_message=None,
     )
     services.run_repository.update_status(
         context.run_id,
         context.user_id,
         RunStatus.AWAITING_APPROVAL,
     )
-    raise WorkflowPausedForApprovalError(
-        "Human approval is required before applying fixes",
-        OrchestrationStage.HUMAN_APPROVAL,
-    )
+    return {
+        "status": "awaiting_approval",
+        "message": "Human approval is required before applying fixes",
+    }
 
 
 @node(name="verify_fixes")

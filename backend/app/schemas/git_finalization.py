@@ -20,3 +20,4 @@ class RunGitFinalizationResponse(BaseModel):
 
 class GitFinalizationRequest(BaseModel):
     base_branch: str | None = Field(default=None, min_length=1, max_length=200)
+    force: bool = False

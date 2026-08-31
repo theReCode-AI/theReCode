@@ -23,6 +23,7 @@ from app.services.run_service import RunService
 from app.workspace import WorkspaceManager
 from tests.scanner_mocks import build_fix_command_runner
 from tests.test_agent_orchestration_repository import InMemoryAgentEventRepository
+from tests.test_approval_repository import InMemoryApprovalRepository
 from tests.test_fix_attempt_repository import InMemoryFixAttemptRepository
 from tests.test_fix_plan_repository import InMemoryFixPlanRepository
 from tests.test_project_service import InMemoryLinkedRepositoryRepository, InMemoryProjectRepository
@@ -80,6 +81,7 @@ def code_fix_stack(tmp_path: Path):
         fix_plan_repository=fix_plan_repository,
         risk_decision_repository=risk_decision_repository,
         fix_attempt_repository=fix_attempt_repository,
+        approval_repository=InMemoryApprovalRepository(),
         event_repository=event_repository,
         code_fix_agent=CodeFixAgent(),
         command_runner=_build_fix_command_runner(),
@@ -97,9 +99,13 @@ def code_fix_stack(tmp_path: Path):
     )
 
 
-def _seed_working_repo(workspace_manager: WorkspaceManager, run_id: str) -> Path:
+def _seed_working_repo(
+    workspace_manager: WorkspaceManager,
+    run_id: str,
+    file_path: str = "src/utils.py",
+) -> Path:
     workspace = workspace_manager.get_run_workspace(run_id)
-    target = workspace.repository / "src" / "utils.py"
+    target = workspace.repository / file_path
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text("unused_var = 1\n", encoding="utf-8")
     return target
@@ -181,8 +187,12 @@ def test_fix_run_skips_non_autonomous_plan(code_fix_stack) -> None:
 
     assert response.applied_count == 0
     assert response.skipped_count == 1
+    assert response.run_status == RunStatus.COMPLETED.value
     attempts = fix_attempt_repository.list_by_run(run.id)
     assert attempts[0].status == FixAttemptStatus.SKIPPED
+    stored_run = _run_repository.get_by_id_for_user(run.id, user_id)
+    assert stored_run is not None
+    assert stored_run.status == RunStatus.COMPLETED
 
 
 def test_fix_run_rolls_back_scope_violation(tmp_path: Path) -> None:
@@ -251,3 +261,59 @@ def test_fix_run_requires_risk_decisions(code_fix_stack) -> None:
 
     with pytest.raises(RiskDecisionsRequiredError):
         service.fix_run(user_id, run.id)
+
+
+def test_fix_run_applies_after_risk_gate_approval(code_fix_stack) -> None:
+    (
+        service,
+        run_service,
+        project_service,
+        workspace_manager,
+        _run_repository,
+        fix_plan_repository,
+        risk_decision_repository,
+        fix_attempt_repository,
+        _event_repository,
+    ) = code_fix_stack
+
+    user_id = str(ObjectId())
+    project = project_service.create_project(user_id, ProjectCreate(name="Approved Fix"))
+    run = run_service.create_run(user_id, RunCreate(project_id=project.id))
+    _seed_working_repo(workspace_manager, run.id, file_path="src/auth/login.py")
+
+    patch_plan = _lint_patch_plan(run.id, file_path="src/auth/login.py")
+    fix_plan_repository.replace_for_run(run.id, [patch_plan])
+    risk_decisions = RiskPolicyEngine().assess(run.id, [patch_plan])
+    risk_decision_repository.replace_for_run(run.id, risk_decisions)
+    assert risk_decisions[0].autonomous_fix_allowed is False
+
+    approval_repository = service._approval_repository
+    assert approval_repository is not None
+    from datetime import UTC, datetime
+
+    from app.models.approval import HumanApproval
+    from app.models.approval_enums import ApprovalStatus, ApprovalTrigger
+
+    approval_repository.add(
+        HumanApproval(
+            approval_id=str(ObjectId()),
+            run_id=run.id,
+            patch_plan_id=patch_plan.patch_plan_id,
+            trigger=ApprovalTrigger.RISK_GATE,
+            status=ApprovalStatus.APPROVED,
+            reason="Approved for autonomous fix",
+            created_at=datetime.now(UTC),
+        ),
+    )
+
+    workspace = workspace_manager.get_run_workspace(run.id)
+    workspace.baseline.mkdir(parents=True, exist_ok=True)
+    (workspace.baseline / RISK_DECISIONS_ARTIFACT_NAME).write_text("[]", encoding="utf-8")
+
+    response = service.fix_run(user_id, run.id)
+
+    assert response.applied_count == 1
+    assert response.skipped_count == 0
+    attempts = fix_attempt_repository.list_by_run(run.id)
+    assert attempts[0].status == FixAttemptStatus.APPLIED
+    assert attempts[0].changed_files == ["src/auth/login.py"]

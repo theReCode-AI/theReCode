@@ -11,6 +11,7 @@ from app.google_adk.orchestrator import GoogleAdkOrchestrator
 from app.services.code_fix_service import CodeFixService
 from app.services.diagnostic_agent_service import DiagnosticAgentService
 from app.services.fix_planner_service import FixPlannerService
+from app.services.gemini_credential_service import GeminiCredentialService
 from app.services.git_finalization_service import GitFinalizationService
 from app.services.git_service import GitService
 from app.services.human_approval_service import HumanApprovalService
@@ -47,6 +48,7 @@ def build_service_container(
     report_service: ReportService,
     event_repository: AgentEventRepository,
     state_repository: AgentStateRepository,
+    gemini_credential_service: GeminiCredentialService | None = None,
 ) -> ServiceContainer:
     return ServiceContainer(
         run_repository=run_repository,
@@ -68,6 +70,7 @@ def build_service_container(
         report_service=report_service,
         event_repository=event_repository,
         state_repository=state_repository,
+        gemini_credential_service=gemini_credential_service,
     )
 
 

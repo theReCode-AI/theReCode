@@ -8,10 +8,13 @@ from app.adk.workflows.stages import OrchestrationStage
 from app.core.logging import get_logger
 from app.db.repositories.agent_event_repository import AgentEventRepository
 from app.db.repositories.finding_repository import FindingRepository
+from app.db.repositories.approval_repository import ApprovalRepository
 from app.db.repositories.fix_plan_repository import FixPlanNotFoundError, FixPlanRepository
 from app.db.repositories.issue_group_repository import IssueGroupRepository
 from app.db.repositories.run_repository import RunNotFoundError, RunRepository
 from app.models.agent_event import AgentEventType
+from app.models.approval import HumanApproval
+from app.models.approval_enums import HumanDecision
 from app.models.issue_group import IssueGroup
 from app.models.issue_group_enums import IssueGroupStatus
 from app.models.patch_plan import PatchPlan
@@ -49,6 +52,7 @@ class FixPlannerService:
         event_repository: AgentEventRepository,
         planner_agent: FixPlannerAgent | None = None,
         memory_service: MemoryService | None = None,
+        approval_repository: ApprovalRepository | None = None,
     ) -> None:
         self._run_repository = run_repository
         self._run_service = run_service
@@ -58,6 +62,7 @@ class FixPlannerService:
         self._event_repository = event_repository
         self._planner_agent = planner_agent or FixPlannerAgent()
         self._memory_service = memory_service
+        self._approval_repository = approval_repository
 
     def plan_run(self, user_id: str, run_id: str) -> FixPlanningResponse:
         run = self._run_repository.get_by_id_for_user(run_id, user_id)
@@ -73,6 +78,13 @@ class FixPlannerService:
         started_at = datetime.now(UTC)
         findings = self._finding_repository.list_by_run(run_id)
         human_feedback = _human_feedback_by_issue_group(workspace.baseline)
+        if self._approval_repository is not None:
+            human_feedback = _merge_human_feedback(
+                human_feedback,
+                self._approval_repository.list_by_run(run_id),
+                self._fix_plan_repository,
+                run_id,
+            )
         memory_snippets: list[str] = []
         if self._memory_service is not None:
             memory_snippets = self._memory_service.planning_snippets_for_run(
@@ -175,3 +187,26 @@ def _human_feedback_by_issue_group(baseline_dir: Path) -> dict[str, str]:
         if issue_group_id and feedback:
             feedback_by_group[issue_group_id] = feedback
     return feedback_by_group
+
+
+def _merge_human_feedback(
+    feedback_by_group: dict[str, str],
+    approvals: list[HumanApproval],
+    fix_plan_repository: FixPlanRepository,
+    run_id: str,
+) -> dict[str, str]:
+    merged = dict(feedback_by_group)
+    for approval in approvals:
+        if approval.human_decision != HumanDecision.REQUEST_CHANGES:
+            continue
+        feedback = (approval.human_feedback or "").strip()
+        if not feedback:
+            continue
+        issue_group_id = None
+        if approval.patch_plan_id is not None:
+            patch_plan = fix_plan_repository.get_by_id_for_run(approval.patch_plan_id, run_id)
+            if patch_plan is not None:
+                issue_group_id = patch_plan.issue_group_id
+        if issue_group_id:
+            merged[issue_group_id] = feedback
+    return merged

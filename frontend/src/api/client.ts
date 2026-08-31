@@ -77,6 +77,21 @@ export async function apiPost<T>(
   );
 }
 
+export async function apiPut<T>(
+  path: string,
+  body?: unknown,
+  token?: string | null,
+): Promise<T> {
+  return apiRequest<T>(
+    path,
+    {
+      method: "PUT",
+      body: body === undefined ? undefined : JSON.stringify(body),
+    },
+    token,
+  );
+}
+
 export async function apiDelete(path: string, token?: string | null): Promise<void> {
   return apiRequest<void>(path, { method: "DELETE" }, token);
 }

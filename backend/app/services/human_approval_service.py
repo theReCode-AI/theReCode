@@ -7,6 +7,7 @@ from app.adk.events import AgentEventEmitter, WorkflowEvent
 from app.adk.workflows.stages import OrchestrationStage
 from app.core.logging import get_logger
 from app.db.repositories.agent_event_repository import AgentEventRepository
+from app.db.repositories.agent_state_repository import AgentStateRepository
 from app.db.repositories.approval_repository import ApprovalNotFoundError, ApprovalRepository
 from app.db.repositories.fix_attempt_repository import FixAttemptRepository
 from app.db.repositories.fix_plan_repository import FixPlanRepository
@@ -20,6 +21,7 @@ from app.models.approval import HumanApproval
 from app.models.approval_enums import ApprovalStatus, ApprovalTrigger, HumanDecision
 from app.models.fix_attempt import FixAttempt
 from app.models.peer_review_result import PeerReviewResult
+from app.models.risk_enums import AutonomyDecision
 from app.models.run import RunStatus
 from app.models.self_correction_cycle import SelfCorrectionCycle
 from app.schemas.approval import (
@@ -89,6 +91,7 @@ class HumanApprovalService:
         self_correction_cycle_repository: SelfCorrectionCycleRepository,
         approval_repository: ApprovalRepository,
         event_repository: AgentEventRepository,
+        state_repository: AgentStateRepository,
     ) -> None:
         self._run_repository = run_repository
         self._run_service = run_service
@@ -100,6 +103,7 @@ class HumanApprovalService:
         self._self_correction_cycle_repository = self_correction_cycle_repository
         self._approval_repository = approval_repository
         self._event_repository = event_repository
+        self._state_repository = state_repository
 
     def prepare_approvals(self, user_id: str, run_id: str) -> PrepareApprovalsResponse:
         run = self._run_repository.get_by_id_for_user(run_id, user_id)
@@ -118,6 +122,7 @@ class HumanApprovalService:
             run.status != RunStatus.AWAITING_APPROVAL
             and not new_approvals
             and not has_pending_approvals
+            and not existing_approvals
         ):
             raise RunNotAwaitingApprovalError()
         persisted_approvals = existing_approvals
@@ -205,7 +210,14 @@ class HumanApprovalService:
         existing_approvals: list[HumanApproval],
     ) -> ApprovalBuildContext:
         existing_keys = {
-            (approval.trigger.value, approval.patch_plan_id) for approval in existing_approvals
+            (approval.trigger.value, approval.patch_plan_id)
+            for approval in existing_approvals
+            if approval.status
+            in {
+                ApprovalStatus.PENDING,
+                ApprovalStatus.APPROVED,
+                ApprovalStatus.REJECTED,
+            }
         }
         return ApprovalBuildContext(
             patch_plans_by_id={
@@ -331,6 +343,11 @@ class HumanApprovalService:
             if workspace is not None:
                 self._append_human_feedback(workspace.baseline, updated_approval)
             replanning_required = True
+        elif (
+            request.decision == HumanDecision.APPROVE
+            and updated_approval.trigger == ApprovalTrigger.RISK_GATE
+        ):
+            self._enable_autonomous_fix_for_approval(run_id, updated_approval)
 
         pending = self._approval_repository.list_pending_by_run(run_id)
         next_status = self._resolve_run_status_after_decision(
@@ -340,6 +357,12 @@ class HumanApprovalService:
             replanning_required,
         )
         self._run_repository.update_status(run_id, user_id, next_status)
+        state_updates: dict[str, object] = {
+            "approval_required": len(pending) > 0,
+        }
+        if next_status == RunStatus.PLANNING:
+            state_updates["current_stage"] = OrchestrationStage.FIX_PLANNING.value
+        self._state_repository.update_fields(run_id, **state_updates)
         if workspace is not None:
             self._write_approvals_artifact(workspace.baseline, run_id)
         self._emit_decision_event(run_id, updated_approval)
@@ -419,6 +442,34 @@ class HumanApprovalService:
             },
         )
         artifact_path.write_text(json.dumps(entries, indent=2), encoding="utf-8")
+
+    def _enable_autonomous_fix_for_approval(
+        self,
+        run_id: str,
+        approval: HumanApproval,
+    ) -> None:
+        if approval.patch_plan_id is None:
+            return
+
+        updated_decisions = []
+        changed = False
+        for decision in self._risk_decision_repository.list_by_run(run_id):
+            if decision.patch_plan_id != approval.patch_plan_id:
+                updated_decisions.append(decision)
+                continue
+            updated_decisions.append(
+                decision.model_copy(
+                    update={
+                        "autonomous_fix_allowed": True,
+                        "autonomy_decision": AutonomyDecision.AUTONOMOUS,
+                        "approval_required": False,
+                    },
+                ),
+            )
+            changed = True
+
+        if changed:
+            self._risk_decision_repository.replace_for_run(run_id, updated_decisions)
 
     def _emit_approval_required(self, run_id: str, approval: HumanApproval) -> None:
         emitter = AgentEventEmitter(run_id, self._event_repository)

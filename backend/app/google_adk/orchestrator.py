@@ -24,11 +24,13 @@ from app.google_adk.errors import WorkflowPausedForApprovalError
 from app.google_adk.workflow_builder import (
     build_therecode_workflow,
     build_post_risk_approval_workflow,
+    build_replan_after_feedback_workflow,
 )
 from app.models.agent_event import AgentEventType
 from app.models.agent_state import OrchestrationStatus, RunAgentState
 from app.models.finding_enums import DiagnosticAgentName
 from app.models.run import RunStatus
+from app.workspace.exceptions import WorkspaceNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -60,12 +62,17 @@ class GoogleAdkOrchestrator:
         skip_clone: bool = False,
         agents: list[DiagnosticAgentName] | None = None,
         resume_after_approval: bool = False,
+        replan_after_feedback: bool = False,
     ) -> RunAgentState:
         if self._services.run_repository.get_by_id_for_user(run_id, user_id) is None:
             raise RunNotFoundError(run_id)
 
-        ensure_google_adk_configured(self._settings)
-        bootstrap_google_genai(self._settings)
+        api_key = None
+        if self._services.gemini_credential_service is not None:
+            api_key = self._services.gemini_credential_service.try_get_api_key(user_id)
+
+        ensure_google_adk_configured(self._settings, api_key=api_key)
+        bootstrap_google_genai(self._settings, api_key=api_key)
 
         if resume_after_approval:
             self._services.state_repository.update_fields(
@@ -74,12 +81,23 @@ class GoogleAdkOrchestrator:
                 current_stage=OrchestrationStage.CODE_FIXING.value,
             )
             self._services.run_repository.update_status(run_id, user_id, RunStatus.FIXING)
+        elif replan_after_feedback:
+            self._services.state_repository.update_fields(
+                run_id,
+                approval_required=False,
+                current_stage=OrchestrationStage.FIX_PLANNING.value,
+            )
+            self._services.run_repository.update_status(run_id, user_id, RunStatus.PLANNING)
+
+        skip_clone_effective = skip_clone or resume_after_approval
+        if replan_after_feedback:
+            skip_clone_effective = self._workspace_ready(user_id, run_id)
 
         run_context = RunExecutionContext(
             user_id=user_id,
             run_id=run_id,
             branch=branch,
-            skip_clone=skip_clone or resume_after_approval,
+            skip_clone=skip_clone_effective,
             agents=tuple(agents) if agents else None,
         )
         set_run_context(run_context)
@@ -87,11 +105,34 @@ class GoogleAdkOrchestrator:
 
         emitter = AgentEventEmitter(run_id, self._services.event_repository)
         try:
-            await self._run_workflow_async(
-                user_id=user_id,
-                run_id=run_id,
-                resume_after_approval=resume_after_approval,
-            )
+            if resume_after_approval:
+                await self._run_workflow_async(
+                    user_id=user_id,
+                    run_id=run_id,
+                    phase="post_risk",
+                )
+            else:
+                await self._run_workflow_async(
+                    user_id=user_id,
+                    run_id=run_id,
+                    phase="replan" if replan_after_feedback else "pre_risk",
+                )
+                if self._is_awaiting_approval(run_id, user_id):
+                    self._handle_pause(
+                        run_id,
+                        user_id,
+                        emitter,
+                        WorkflowPausedForApprovalError(
+                            "Human approval is required before applying fixes",
+                            OrchestrationStage.HUMAN_APPROVAL,
+                        ),
+                    )
+                else:
+                    await self._run_workflow_async(
+                        user_id=user_id,
+                        run_id=run_id,
+                        phase="post_risk",
+                    )
         except WorkflowPausedForApprovalError as exc:
             self._handle_pause(run_id, user_id, emitter, exc)
         except Exception as exc:
@@ -106,25 +147,37 @@ class GoogleAdkOrchestrator:
             raise RunNotFoundError(run_id)
         return final_state
 
+    def _is_awaiting_approval(self, run_id: str, user_id: str) -> bool:
+        run = self._services.run_repository.get_by_id_for_user(run_id, user_id)
+        return run is not None and run.status == RunStatus.AWAITING_APPROVAL
+
     async def _run_workflow_async(
         self,
         *,
         user_id: str,
         run_id: str,
-        resume_after_approval: bool,
+        phase: str,
     ) -> None:
-        if resume_after_approval:
+        if phase == "replan":
+            workflow = build_replan_after_feedback_workflow(model=self._settings.gemini_model)
+            prompt = (
+                "Replan the autonomous run using the human reviewer's feedback. "
+                "Create updated patch plans and reassess risk."
+            )
+            session_id = f"{run_id}-replan"
+        elif phase == "post_risk":
             workflow = build_post_risk_approval_workflow(model=self._settings.gemini_model)
             prompt = (
-                "Resume the autonomous run after human risk-gate approval. "
-                "Continue from code fixing through finalization."
+                "Continue the autonomous run from code fixing through finalization."
             )
+            session_id = f"{run_id}-post-risk"
         else:
             workflow = build_therecode_workflow(model=self._settings.gemini_model)
             prompt = (
-                "Execute the full autonomous software-engineering run for this repository. "
+                "Execute repository analysis through risk assessment for this autonomous run. "
                 "Follow the workflow stages in order and use tools where required."
             )
+            session_id = f"{run_id}-pre-risk"
 
         app = App(name=self._settings.google_adk_app_name, root_agent=workflow)
         session_service = InMemorySessionService()
@@ -137,7 +190,7 @@ class GoogleAdkOrchestrator:
         await session_service.create_session(
             app_name=self._settings.google_adk_app_name,
             user_id=user_id,
-            session_id=run_id,
+            session_id=session_id,
         )
 
         message = types.Content(
@@ -147,12 +200,12 @@ class GoogleAdkOrchestrator:
 
         async for event in runner.run_async(
             user_id=user_id,
-            session_id=run_id,
+            session_id=session_id,
             new_message=message,
         ):
             logger.debug(
                 "ADK workflow event",
-                extra={"run_id": run_id, "author": event.author},
+                extra={"run_id": run_id, "phase": phase, "author": event.author},
             )
 
     def _handle_pause(
@@ -217,3 +270,13 @@ class GoogleAdkOrchestrator:
             ),
         )
         self._services.run_repository.update_status(run_id, user_id, RunStatus.FAILED)
+
+    def _workspace_ready(self, user_id: str, run_id: str) -> bool:
+        try:
+            workspace = self._services.run_service.get_workspace_for_run(user_id, run_id)
+        except WorkspaceNotFoundError:
+            return False
+        repository = workspace.repository
+        if not repository.is_dir():
+            return False
+        return any(repository.iterdir())

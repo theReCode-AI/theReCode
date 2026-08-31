@@ -10,7 +10,3 @@ steps:
 
 images:
   - $_IMAGE
-
-substitutions:
-  # Override on submit: full backend API prefix on Cloud Run
-  _VITE_API_BASE_URL: https://harpic-cursor-v1-img-349908796899.europe-west1.run.app/api/v1

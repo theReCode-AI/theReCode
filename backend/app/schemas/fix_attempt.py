@@ -5,6 +5,10 @@ from pydantic import BaseModel, Field
 from app.models.fix_attempt import FixAttempt
 
 
+class CodeFixRequest(BaseModel):
+    force: bool = False
+
+
 class FixAttemptResponse(FixAttempt):
     """API response for a persisted fix attempt."""
 

@@ -11,6 +11,7 @@ from app.db.repositories.finding_repository import FindingRepository
 from app.db.repositories.fix_attempt_repository import FixAttemptRepository
 from app.db.repositories.fix_plan_repository import FixPlanRepository
 from app.db.repositories.git_credential_repository import GitCredentialRepository
+from app.db.repositories.gemini_credential_repository import GeminiCredentialRepository
 from app.db.repositories.git_operation_repository import GitOperationRepository
 from app.db.repositories.issue_group_repository import IssueGroupRepository
 from app.db.repositories.linked_repository_repository import LinkedRepositoryRepository
@@ -34,6 +35,7 @@ from app.services.code_fix_service import CodeFixService
 from app.services.diagnostic_agent_service import DiagnosticAgentService
 from app.services.fix_planner_service import FixPlannerService
 from app.services.gemini_chat_client import GeminiChatClient
+from app.services.gemini_credential_service import GeminiCredentialService
 from app.services.git_credential_service import GitCredentialService
 from app.services.git_finalization_service import GitFinalizationService
 from app.services.git_service import GitService
@@ -72,6 +74,12 @@ def get_git_credential_repository(
     database: Database = Depends(get_database),
 ) -> GitCredentialRepository:
     return GitCredentialRepository(database)
+
+
+def get_gemini_credential_repository(
+    database: Database = Depends(get_database),
+) -> GeminiCredentialRepository:
+    return GeminiCredentialRepository(database)
 
 
 def get_finding_repository(database: Database = Depends(get_database)) -> FindingRepository:
@@ -205,6 +213,16 @@ def get_git_credential_service(
     app_settings: Settings = Depends(get_settings),
 ) -> GitCredentialService:
     return GitCredentialService(
+        credential_repository=credential_repository,
+        app_settings=app_settings,
+    )
+
+
+def get_gemini_credential_service(
+    credential_repository: GeminiCredentialRepository = Depends(get_gemini_credential_repository),
+    app_settings: Settings = Depends(get_settings),
+) -> GeminiCredentialService:
+    return GeminiCredentialService(
         credential_repository=credential_repository,
         app_settings=app_settings,
     )
@@ -405,6 +423,7 @@ def get_fix_planner_service(
     issue_group_repository: IssueGroupRepository = Depends(get_issue_group_repository),
     fix_plan_repository: FixPlanRepository = Depends(get_fix_plan_repository),
     event_repository: AgentEventRepository = Depends(get_agent_event_repository),
+    approval_repository: ApprovalRepository = Depends(get_approval_repository),
     memory_service: MemoryService = Depends(get_memory_service),
 ) -> FixPlannerService:
     return FixPlannerService(
@@ -414,6 +433,7 @@ def get_fix_planner_service(
         issue_group_repository=issue_group_repository,
         fix_plan_repository=fix_plan_repository,
         event_repository=event_repository,
+        approval_repository=approval_repository,
         memory_service=memory_service,
     )
 
@@ -440,7 +460,9 @@ def get_code_fix_service(
     fix_plan_repository: FixPlanRepository = Depends(get_fix_plan_repository),
     risk_decision_repository: RiskDecisionRepository = Depends(get_risk_decision_repository),
     fix_attempt_repository: FixAttemptRepository = Depends(get_fix_attempt_repository),
+    approval_repository: ApprovalRepository = Depends(get_approval_repository),
     event_repository: AgentEventRepository = Depends(get_agent_event_repository),
+    gemini_credential_service: GeminiCredentialService = Depends(get_gemini_credential_service),
     app_settings: Settings = Depends(get_settings),
 ) -> CodeFixService:
     return CodeFixService(
@@ -449,8 +471,11 @@ def get_code_fix_service(
         fix_plan_repository=fix_plan_repository,
         risk_decision_repository=risk_decision_repository,
         fix_attempt_repository=fix_attempt_repository,
+        approval_repository=approval_repository,
         event_repository=event_repository,
         scanner_timeout_seconds=app_settings.scanner_timeout_seconds,
+        settings=app_settings,
+        gemini_credential_service=gemini_credential_service,
     )
 
 
@@ -489,6 +514,7 @@ def get_self_correction_service(
         get_self_correction_cycle_repository,
     ),
     event_repository: AgentEventRepository = Depends(get_agent_event_repository),
+    gemini_credential_service: GeminiCredentialService = Depends(get_gemini_credential_service),
     app_settings: Settings = Depends(get_settings),
 ) -> SelfCorrectionService:
     return SelfCorrectionService(
@@ -502,6 +528,8 @@ def get_self_correction_service(
         event_repository=event_repository,
         scanner_timeout_seconds=app_settings.scanner_timeout_seconds,
         max_fix_iterations=app_settings.max_fix_iterations,
+        settings=app_settings,
+        gemini_credential_service=gemini_credential_service,
     )
 
 
@@ -574,6 +602,7 @@ def get_human_approval_service(
     ),
     approval_repository: ApprovalRepository = Depends(get_approval_repository),
     event_repository: AgentEventRepository = Depends(get_agent_event_repository),
+    state_repository: AgentStateRepository = Depends(get_agent_state_repository),
 ) -> HumanApprovalService:
     return HumanApprovalService(
         run_repository=run_repository,
@@ -586,6 +615,7 @@ def get_human_approval_service(
         self_correction_cycle_repository=self_correction_cycle_repository,
         approval_repository=approval_repository,
         event_repository=event_repository,
+        state_repository=state_repository,
     )
 
 
@@ -627,6 +657,7 @@ def get_root_orchestrator(
     report_service: ReportService = Depends(get_report_service),
     event_repository: AgentEventRepository = Depends(get_agent_event_repository),
     state_repository: AgentStateRepository = Depends(get_agent_state_repository),
+    gemini_credential_service: GeminiCredentialService = Depends(get_gemini_credential_service),
     app_settings: Settings = Depends(get_settings),
 ) -> GoogleAdkOrchestrator:
     services = build_service_container(
@@ -649,6 +680,7 @@ def get_root_orchestrator(
         report_service=report_service,
         event_repository=event_repository,
         state_repository=state_repository,
+        gemini_credential_service=gemini_credential_service,
     )
     return build_google_adk_orchestrator(app_settings, services)
 
@@ -688,6 +720,7 @@ def get_chat_service(
     finding_repository: FindingRepository = Depends(get_finding_repository),
     memory_repository: MemoryRepository = Depends(get_memory_repository),
     report_repository: ReportRepository = Depends(get_report_repository),
+    gemini_credential_service: GeminiCredentialService = Depends(get_gemini_credential_service),
 ) -> ChatService:
     return ChatService(
         settings=app_settings,
@@ -699,4 +732,5 @@ def get_chat_service(
         memory_repository=memory_repository,
         report_repository=report_repository,
         gemini_client=GeminiChatClient(app_settings),
+        gemini_credential_service=gemini_credential_service,
     )

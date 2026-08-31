@@ -7,6 +7,9 @@ class InMemoryReportRepository(ReportRepository):
         self._reports_by_run: dict[str, RunReport] = {}
 
     def upsert_for_run(self, report: RunReport) -> RunReport:
+        existing = self._reports_by_run.get(report.run_id)
+        if existing is not None:
+            report = report.model_copy(update={"report_id": existing.report_id})
         self._reports_by_run[report.run_id] = report
         return report
 

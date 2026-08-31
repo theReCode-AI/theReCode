@@ -45,3 +45,7 @@ workspace/runs/*
 workspace/runs
 workspace/*
 /workspace
+
+backend_deploy.sh
+frontend_deploy.sh
+/scripts

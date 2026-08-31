@@ -97,6 +97,12 @@ INDEX_DEFINITIONS: dict[str, list[IndexDefinition]] = {
             {"unique": True, "name": "git_credentials_user_provider_unique"},
         ),
     ],
+    collections.GEMINI_CREDENTIALS: [
+        IndexDefinition(
+            [("user_id", ASCENDING)],
+            {"unique": True, "name": "gemini_credentials_user_id_unique"},
+        ),
+    ],
     collections.REPORTS: [
         IndexDefinition([("run_id", ASCENDING)], {"unique": True, "name": "reports_run_id_unique"}),
     ],

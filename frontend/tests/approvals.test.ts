@@ -62,6 +62,7 @@ describe("approvals utils", () => {
     expect(shouldShowPrepareApprovals([pendingApproval], [riskDecision], false)).toBe(
       false,
     );
-    expect(shouldShowPrepareApprovals([], [], true)).toBe(true);
+    expect(shouldShowPrepareApprovals([], [], true, "AWAITING_APPROVAL")).toBe(true);
+    expect(shouldShowPrepareApprovals([], [], true, "COMPLETED")).toBe(false);
   });
 });

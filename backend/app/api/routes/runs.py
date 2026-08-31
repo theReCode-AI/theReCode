@@ -53,6 +53,7 @@ from app.schemas.finding import (
     RunDiagnosticAgentsRequest,
 )
 from app.schemas.fix_attempt import (
+    CodeFixRequest,
     CodeFixResponse,
     FixAttemptDiffResponse,
     FixAttemptResponse,
@@ -65,6 +66,7 @@ from app.schemas.git_finalization import (
 )
 from app.schemas.issue_group import IssueCorrelationResponse, IssueGroupResponse
 from app.schemas.memory import CaptureRunMemoryResponse
+from app.models.finding_enums import DiagnosticAgentName
 from app.schemas.orchestration import (
     AgentEventResponse,
     RunAgentStateResponse,
@@ -103,7 +105,12 @@ from app.services.human_approval_service import (
 )
 from app.services.issue_correlation_service import IssueCorrelationService
 from app.services.memory_service import MemoryService
-from app.services.orchestration_service import AgentStateNotFoundError, OrchestrationService
+from app.google_adk.bootstrap import GoogleAdkConfigurationError
+from app.services.orchestration_service import (
+    AgentStateNotFoundError,
+    OrchestrationService,
+    RunOrchestrationInProgressError,
+)
 from app.services.peer_review_service import PeerReviewService, RegressionTestsRequiredError
 from app.services.project_intelligence_service import ProjectIntelligenceService
 from app.services.regression_test_service import (
@@ -147,6 +154,47 @@ async def _resume_run_after_risk_gate_approval(
         skip_clone=True,
         resume_after_approval=True,
     )
+
+
+async def _replan_run_after_feedback(
+    orchestration_service: OrchestrationService,
+    user_id: str,
+    run_id: str,
+) -> None:
+    await orchestration_service.execute_run(
+        user_id,
+        run_id,
+        skip_clone=False,
+        replan_after_feedback=True,
+    )
+
+
+async def _execute_run_orchestration_background(
+    orchestration_service: OrchestrationService,
+    user_id: str,
+    run_id: str,
+    *,
+    branch: str | None,
+    skip_clone: bool,
+    agents: list[DiagnosticAgentName] | None,
+    resume_after_approval: bool,
+    replan_after_feedback: bool,
+) -> None:
+    try:
+        await orchestration_service.execute_run(
+            user_id,
+            run_id,
+            branch=branch,
+            skip_clone=skip_clone,
+            agents=agents,
+            resume_after_approval=resume_after_approval,
+            replan_after_feedback=replan_after_feedback,
+        )
+    except Exception:
+        logger.exception(
+            "Background run orchestration failed",
+            extra={"run_id": run_id, "user_id": user_id},
+        )
 
 
 def _gemini_rate_limit_http_exception(exc: BaseException) -> HTTPException | None:
@@ -476,11 +524,16 @@ async def get_run_risk_decision(
 @router.post("/{run_id}/fix", response_model=CodeFixResponse)
 async def apply_run_fixes(
     run_id: str,
+    payload: CodeFixRequest | None = None,
     current_user: User = Depends(get_current_active_user),
     code_fix_service: CodeFixService = Depends(get_code_fix_service),
 ) -> CodeFixResponse:
     try:
-        return code_fix_service.fix_run(current_user.id, run_id)
+        return code_fix_service.fix_run(
+            current_user.id,
+            run_id,
+            force=payload.force if payload else False,
+        )
     except RunNotFoundError as exc:
         raise _run_not_found() from exc
     except RiskDecisionsRequiredError as exc:
@@ -874,6 +927,13 @@ async def decide_run_approval(
                 current_user.id,
                 run_id,
             )
+        elif response.replanning_required:
+            background_tasks.add_task(
+                _replan_run_after_feedback,
+                orchestration_service,
+                current_user.id,
+                run_id,
+            )
         return response
     except RunNotFoundError as exc:
         raise _run_not_found() from exc
@@ -927,6 +987,7 @@ async def finalize_run_git(
             current_user.id,
             run_id,
             base_branch=payload.base_branch if payload else None,
+            force=payload.force if payload else False,
         )
     except RunNotFoundError as exc:
         raise _run_not_found() from exc
@@ -934,6 +995,24 @@ async def finalize_run_git(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=exc.message,
+        ) from exc
+    except Exception as exc:
+        logger.exception(
+            "Git finalization failed",
+            extra={"run_id": run_id, "user_id": current_user.id},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc) or "Git finalization failed",
+        ) from exc
+    except Exception as exc:
+        logger.exception(
+            "Git finalization failed",
+            extra={"run_id": run_id, "user_id": current_user.id},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc) or "Git finalization failed",
         ) from exc
 
 
@@ -1005,42 +1084,93 @@ async def get_run_report_markdown(
         ) from exc
 
 
-@router.get("/{run_id}/reports", response_model=RunReportResponse | None)
+@router.get("/{run_id}/reports", response_model=RunReportResponse)
 async def get_run_report(
     run_id: str,
     current_user: User = Depends(get_current_active_user),
     report_service: ReportService = Depends(get_report_service),
-) -> RunReportResponse | None:
+) -> RunReportResponse:
     try:
-        return report_service.get_run_report(current_user.id, run_id)
+        report = report_service.get_run_report(current_user.id, run_id)
     except RunNotFoundError as exc:
         raise _run_not_found() from exc
+    except RunReportNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=exc.message,
+        ) from exc
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception(
+            "Failed to load run report",
+            extra={"run_id": run_id, "user_id": current_user.id},
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc) or "Unable to load run report",
+        ) from exc
+
+    if report is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No report available for run: {run_id}",
+        )
+    return report
 
 
-@router.post("/{run_id}/execute", response_model=RunOrchestrationResponse)
+@router.post(
+    "/{run_id}/execute",
+    response_model=RunOrchestrationResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+)
 async def execute_run_orchestration(
     run_id: str,
+    background_tasks: BackgroundTasks,
     payload: RunOrchestrationRequest | None = None,
     current_user: User = Depends(get_current_active_user),
     orchestration_service: OrchestrationService = Depends(get_orchestration_service),
 ) -> RunOrchestrationResponse:
     try:
         request = payload or RunOrchestrationRequest()
-        return await orchestration_service.execute_run(
+        orchestration_service.ensure_can_execute(current_user.id, run_id)
+        background_tasks.add_task(
+            _execute_run_orchestration_background,
+            orchestration_service,
             current_user.id,
             run_id,
             branch=request.branch,
             skip_clone=request.skip_clone,
             agents=request.agents,
             resume_after_approval=request.resume_after_approval,
+            replan_after_feedback=request.replan_after_feedback,
         )
+        return orchestration_service.build_accepted_response(current_user.id, run_id)
     except RunNotFoundError as exc:
         raise _run_not_found() from exc
+    except AgentStateNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=exc.message,
+        ) from exc
+    except RunOrchestrationInProgressError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=exc.message,
+        ) from exc
+    except GoogleAdkConfigurationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
     except Exception as exc:
         rate_limit = _gemini_rate_limit_http_exception(exc)
         if rate_limit is not None:
             raise rate_limit from exc
-        raise
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(exc) or "Run orchestration failed",
+        ) from exc
 
 
 @router.get("/{run_id}/events", response_model=list[AgentEventResponse])

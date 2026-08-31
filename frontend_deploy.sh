@@ -1,32 +1,34 @@
-# gcloud builds submit ./frontend \
-#   --config=./frontend/cloudbuild.yaml \
-#   --substitutions=_IMAGE=europe-north1-docker.pkg.dev/todo-app-506706/harpic-cursor-v1/harpic-frontend:v3,_VITE_API_BASE_URL=https://harpic-cursor-v1-img-349908796899.europe-west1.run.app/api/v1
+#!/usr/bin/env bash
+set -euo pipefail
 
-# gcloud run deploy harpic-frontend \
-#   --image europe-north1-docker.pkg.dev/todo-app-506706/harpic-cursor-v1/harpic-frontend:v3 \
-#   --region europe-north1 \
-#   --port 8080 \
-#   --allow-unauthenticated
+# Absolute backend API base URL baked into the SPA at build time.
+# Override with: BACKEND_API_BASE_URL=https://your-api.run.app/api/v1 ./frontend_deploy.sh
+REGION="${REGION:-europe-north1}"
+BACKEND_SERVICE="${BACKEND_SERVICE:-therecode-api}"
+IMAGE="${IMAGE:-europe-north1-docker.pkg.dev/therecode-ai/therecode-frontend/therecode-frontend-dashboard:v1}"
 
+if [[ -z "${BACKEND_API_BASE_URL:-}" ]]; then
+  if BACKEND_HOST="$(
+    gcloud run services describe "${BACKEND_SERVICE}" \
+      --region="${REGION}" \
+      --format='value(status.url)' 2>/dev/null
+  )" && [[ -n "${BACKEND_HOST}" ]]; then
+    BACKEND_API_BASE_URL="${BACKEND_HOST}/api/v1"
+  else
+    echo "ERROR: _VITE_API_BASE_URL is required for the frontend image build." >&2
+    echo "Set BACKEND_API_BASE_URL to your Cloud Run API URL, for example:" >&2
+    echo "  BACKEND_API_BASE_URL=https://therecode-api-xxxxx.${REGION}.run.app/api/v1 ./frontend_deploy.sh" >&2
+    exit 1
+  fi
+fi
 
-# gcloud artifacts repositories create harpic-cursor-frontend-v1 --repository-format=docker --location=europe-north1 --description="FAST API APP TEST" --immutable-tags --async
-
-# gcloud auth configure-docker europe-north1-docker.pkg.dev
-
-
-# gcloud builds submit ./../frontend --tag europe-north1-docker.pkg.dev/todo-app-506706/harpic-cursor-frontend-v1/harpic-cursor-frontend-image-v1:frontend-v1tag
-
-# gcloud builds submit ./frontend \
-#   --tag europe-north1-docker.pkg.dev/todo-app-506706/harpic-cursor-frontend-v1/frontendimg-v1:frontend-v1tag \
-#   --build-arg VITE_API_BASE_URL=https://harpic-cursor-v1-img-349908796899.europe-west1.run.app/api/v1
+echo "Building frontend with VITE_API_BASE_URL=${BACKEND_API_BASE_URL}"
 
 gcloud builds submit ./frontend \
   --config=./frontend/cloudbuild.yaml \
-  --substitutions=_IMAGE=europe-north1-docker.pkg.dev/therecode-ai/therecode-agent-fe/therecode-agent-fe:v1,_VITE_API_BASE_URL=https://harpic-cursor-v1-img-349908796899.europe-west1.run.app/api/v1
+  --substitutions="_IMAGE=${IMAGE},_VITE_API_BASE_URL=${BACKEND_API_BASE_URL}"
 
-gcloud run deploy therecode-agent-frontend \
-  --image europe-north1-docker.pkg.dev/therecode-ai/therecode-agent-fe/therecode-agent-fe:v3 \
-  --region europe-north1 \
-  --port 8080 \
-  --allow-unauthenticated
 
+gcloud builds submit ./frontend \
+  --config=./frontend/cloudbuild.yaml \
+  --substitutions=_IMAGE=europe-north1-docker.pkg.dev/therecode-ai/therecode-frontend/therecode-frontend-dashboard:v2,_VITE_API_BASE_URL=https://therecode-backend-api-683080071974.europe-west1.run.app/api/v1

@@ -21,7 +21,10 @@ from app.services.human_approval_service import (
 from app.services.project_service import ProjectService
 from app.services.run_service import RunService
 from app.workspace import WorkspaceManager
-from tests.test_agent_orchestration_repository import InMemoryAgentEventRepository
+from tests.test_agent_orchestration_repository import (
+    InMemoryAgentEventRepository,
+    InMemoryAgentStateRepository,
+)
 from tests.test_approval_repository import InMemoryApprovalRepository
 from tests.test_fix_attempt_repository import InMemoryFixAttemptRepository
 from tests.test_fix_plan_repository import InMemoryFixPlanRepository
@@ -44,6 +47,7 @@ def human_approval_stack(tmp_path: Path):
     self_correction_cycle_repository = InMemorySelfCorrectionCycleRepository()
     approval_repository = InMemoryApprovalRepository()
     event_repository = InMemoryAgentEventRepository()
+    state_repository = InMemoryAgentStateRepository()
     workspace_manager = WorkspaceManager(tmp_path)
     project_service = ProjectService(
         InMemoryProjectRepository(),
@@ -61,6 +65,7 @@ def human_approval_stack(tmp_path: Path):
         self_correction_cycle_repository=self_correction_cycle_repository,
         approval_repository=approval_repository,
         event_repository=event_repository,
+        state_repository=state_repository,
     )
     return (
         service,

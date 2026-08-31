@@ -7,9 +7,11 @@ from bson import ObjectId
 from app.adk.agents.self_correction_agent import SelfCorrectionAgent
 from app.adk.events import AgentEventEmitter, WorkflowEvent
 from app.adk.fixing.applicator import FixApplicator
+from app.adk.fixing.llm_rewriter import GeminiCodeRewriter
 from app.adk.self_correction.engine import SelfCorrectionRunResult
 from app.adk.verification.engine import VerificationEngine
 from app.adk.workflows.stages import OrchestrationStage
+from app.core.config import Settings
 from app.core.logging import get_logger
 from app.db.repositories.agent_event_repository import AgentEventRepository
 from app.db.repositories.fix_attempt_repository import FixAttemptRepository
@@ -33,6 +35,7 @@ from app.models.verification_result import VerificationResult
 from app.scanners import SubprocessCommandRunner
 from app.schemas.self_correction import RunSelfCorrectionResponse, SelfCorrectionCycleResponse
 from app.services.code_fix_service import FIX_ATTEMPTS_ARTIFACT_NAME
+from app.services.gemini_credential_service import GeminiCredentialService
 from app.services.run_service import RunService
 from app.services.verification_service import VERIFICATION_RESULTS_ARTIFACT_NAME
 
@@ -67,6 +70,8 @@ class SelfCorrectionService:
         command_runner: SubprocessCommandRunner | None = None,
         scanner_timeout_seconds: int = 120,
         max_fix_iterations: int = 3,
+        settings: Settings | None = None,
+        gemini_credential_service: GeminiCredentialService | None = None,
     ) -> None:
         self._run_repository = run_repository
         self._run_service = run_service
@@ -80,6 +85,8 @@ class SelfCorrectionService:
         self._command_runner = command_runner or SubprocessCommandRunner()
         self._scanner_timeout_seconds = scanner_timeout_seconds
         self._max_fix_iterations = max_fix_iterations
+        self._settings = settings
+        self._gemini_credential_service = gemini_credential_service
 
     def correct_run(self, user_id: str, run_id: str) -> RunSelfCorrectionResponse:
         run = self._run_repository.get_by_id_for_user(run_id, user_id)
@@ -102,7 +109,16 @@ class SelfCorrectionService:
         )
         workspace = self._run_service.get_workspace_for_run(user_id, run_id)
 
-        applicator = FixApplicator(self._command_runner, self._scanner_timeout_seconds)
+        api_key = None
+        if self._gemini_credential_service is not None:
+            api_key = self._gemini_credential_service.try_get_api_key(user_id)
+        applicator = FixApplicator(
+            self._command_runner,
+            self._scanner_timeout_seconds,
+            code_rewriter=(
+                GeminiCodeRewriter(self._settings, api_key=api_key) if self._settings else None
+            ),
+        )
         verification_engine = VerificationEngine(
             self._command_runner,
             self._scanner_timeout_seconds,

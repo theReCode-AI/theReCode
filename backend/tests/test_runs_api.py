@@ -144,6 +144,7 @@ async def runs_client(tmp_path, mock_mongodb_lifecycle):
         fix_plan_repository=fix_plan_repository,
         risk_decision_repository=risk_decision_repository,
         fix_attempt_repository=fix_attempt_repository,
+        approval_repository=approval_repository,
         event_repository=event_repository,
         command_runner=build_fix_command_runner(),
     )
@@ -198,6 +199,7 @@ async def runs_client(tmp_path, mock_mongodb_lifecycle):
         self_correction_cycle_repository=self_correction_cycle_repository,
         approval_repository=approval_repository,
         event_repository=event_repository,
+        state_repository=state_repository,
     )
     memory_service = MemoryService(
         run_repository=run_repository,
@@ -220,6 +222,7 @@ async def runs_client(tmp_path, mock_mongodb_lifecycle):
         issue_group_repository=issue_group_repository,
         fix_plan_repository=fix_plan_repository,
         event_repository=event_repository,
+        approval_repository=approval_repository,
         memory_service=memory_service,
     )
     git_credential_service = GitCredentialService(
@@ -505,6 +508,7 @@ async def test_execute_run_orchestration_endpoint(
     runs_client: AsyncClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    import asyncio
     import shutil
 
     monkeypatch.setattr("app.scanners.base.is_tool_available", lambda _: True)
@@ -538,19 +542,25 @@ async def test_execute_run_orchestration_endpoint(
             "agents": ["code_quality_agent", "test_agent"],
         },
     )
-    assert execute.status_code == 200
+    assert execute.status_code == 202
     payload = execute.json()
     assert payload["run_id"] == run["id"]
-    assert payload["state"]["status"] == "completed"
-    assert payload["event_count"] > 0
+
+    for _ in range(100):
+        state = await runs_client.get(f"/api/v1/runs/{run['id']}/state", headers=headers)
+        assert state.status_code == 200
+        if state.json()["status"] == "completed":
+            break
+        await asyncio.sleep(0.05)
+    else:
+        raise AssertionError("Run orchestration did not complete in time")
+
+    assert state.json()["status"] == "completed"
+    assert payload["event_count"] >= 0
 
     events = await runs_client.get(f"/api/v1/runs/{run['id']}/events", headers=headers)
     assert events.status_code == 200
-    assert len(events.json()) == payload["event_count"]
-
-    state = await runs_client.get(f"/api/v1/runs/{run['id']}/state", headers=headers)
-    assert state.status_code == 200
-    assert state.json()["status"] == "completed"
+    assert len(events.json()) > 0
 
 
 async def test_correlate_run_findings_endpoint(
@@ -1822,3 +1832,26 @@ async def test_generate_run_report_and_get_report(runs_client: AsyncClient) -> N
     )
     assert markdown.status_code == 200
     assert markdown.json()["markdown"] == "# Report"
+
+
+async def test_get_run_report_returns_404_when_missing(
+    runs_client: AsyncClient,
+) -> None:
+    headers = await _auth_headers(runs_client, "noreport@example.com")
+    project = (
+        await runs_client.post(
+            "/api/v1/projects",
+            headers=headers,
+            json={"name": "No Report Project"},
+        )
+    ).json()
+    run = (
+        await runs_client.post(
+            "/api/v1/runs",
+            headers=headers,
+            json={"project_id": project["id"]},
+        )
+    ).json()
+
+    response = await runs_client.get(f"/api/v1/runs/{run['id']}/reports", headers=headers)
+    assert response.status_code == 404

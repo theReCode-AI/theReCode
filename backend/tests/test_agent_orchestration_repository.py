@@ -65,7 +65,21 @@ class InMemoryAgentStateRepository(AgentStateRepository):
         return state
 
     def initialize(self, run_id: str) -> RunAgentState:
+        existing = self.get_by_run(run_id)
         now = datetime.now(UTC)
+        if existing is not None:
+            return self.upsert(
+                existing.model_copy(
+                    update={
+                        "status": OrchestrationStatus.PENDING,
+                        "progress": 0,
+                        "error_message": None,
+                        "approval_required": False,
+                        "updated_at": now,
+                    },
+                ),
+            )
+
         state = RunAgentState(
             _id=str(ObjectId()),
             run_id=run_id,
@@ -85,3 +99,15 @@ class InMemoryAgentStateRepository(AgentStateRepository):
             update={**fields, "updated_at": datetime.now(UTC)},
         )
         return self.upsert(updated)
+
+
+def test_initialize_preserves_state_id_on_repeat() -> None:
+    repository = InMemoryAgentStateRepository()
+    run_id = str(ObjectId())
+
+    first = repository.initialize(run_id)
+    second = repository.initialize(run_id)
+
+    assert first.id == second.id
+    assert second.status == OrchestrationStatus.PENDING
+    assert second.progress == 0

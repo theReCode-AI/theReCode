@@ -23,12 +23,13 @@ export function shouldShowPrepareApprovals(
   approvals: HumanApproval[],
   riskDecisions: RiskDecision[],
   approvalRequiredFromState?: boolean,
+  runStatus?: string,
 ): boolean {
   if (countPendingApprovals(approvals) > 0) {
     return false;
   }
-  return (
-    hasUnpreparedApprovalTriggers(approvals, riskDecisions) ||
-    Boolean(approvalRequiredFromState)
-  );
+  if (hasUnpreparedApprovalTriggers(approvals, riskDecisions)) {
+    return true;
+  }
+  return Boolean(approvalRequiredFromState && runStatus === "AWAITING_APPROVAL");
 }
