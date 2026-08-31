@@ -174,10 +174,8 @@ frontend/src/
   routes/        React Router tree
   types/         Shared TypeScript models
 ```
-
-### MongoDB collections
-
-`users`, `projects`, `repositories`, `runs`, `agent_events`, `agent_states`, `findings`, `issue_groups`, `fix_plans`, `risk_decisions`, `fix_attempts`, `verification_results`, `self_correction_cycles`, `regression_test_results`, `reviews`, `approvals`, `memories`, `git_operations`, `git_credentials`, `reports`, `chat_messages`
+### Architecture
+![](./DOCS/resources/agent-architecture.png)
 
 ### Execute data flow
 
