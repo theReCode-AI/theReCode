@@ -2,7 +2,6 @@
 
 **Autonomous AI software-engineering platform for Python repositories on GitHub and GitLab.**
 
-> **CodeThera** was the original hackathon codename; the shipping product is branded **theReCode**.
 
 theReCode analyzes real repositories, runs industry-standard diagnostics, plans and applies fixes with Gemini, verifies changes, performs multi-agent peer review, captures institutional memory, and opens pull requests — behaving like an autonomous software engineer, not a chatbot.
 
