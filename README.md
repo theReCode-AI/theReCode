@@ -173,8 +173,12 @@ docker compose --profile app up --build
 ![register](./DOCS/resources/web-interface/therecode-register-page.png)
 ![login](./DOCS/resources/web-interface/therecode-login-page.png)
 
-### Video tutorial
-<iframe width="560" height="315" src="https://www.youtube.com/embed/OZPB2GuU4T8?si=i-QTpioFBt8Bq3yR&amp;start=85" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+<!-- ### Video tutorial -->
+
+## [Video Tutorial](https://www.youtube.com/embed/OZPB2GuU4T8?start=85)
+
+
+
 ---
 
 
