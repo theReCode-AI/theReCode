@@ -539,56 +539,6 @@ Prefix: **`THERECODE_`** (backend). Frontend: **`VITE_`**.
 
 ---
 
-### Local quick start
-
-```bash
-# Terminal A
-docker compose up -d mongodb
-
-# Terminal B
-cd backend && uv sync && uv run uvicorn app.main:app --reload --port 8000
-
-# Terminal C
-cd frontend && npm install && npm run dev
-```
-
-Open http://localhost:5173
-
-### API smoke test
-
-```bash
-BASE=http://localhost:8000/api/v1
-
-curl -s "$BASE/health"
-
-curl -s -X POST "$BASE/auth/register" -H 'Content-Type: application/json' \
-  -d '{"email":"demo@example.com","password":"TestPass123!","full_name":"Demo User"}'
-
-# Login → export TOKEN=...
-curl -s "$BASE/auth/me" -H "Authorization: Bearer $TOKEN"
-```
-
-Use `/docs` for interactive exploration of projects, runs, and `POST /runs/{id}/execute`.
-
-### Demo repository suggestions
-
-Use a small Python repo with intentional issues (lint, Bandit finding, failing test) so the pipeline produces visible findings and fixes within a few minutes.
-
----
-
-## Limitations
-
-1. **Ephemeral Cloud Run workspace** — `/workspace` does not survive instance recycle; full pipeline resume after long delays may require re-clone.
-2. **In-memory ADK sessions** — orchestration sessions are not shared across replicas or process restarts (domain state in Mongo is durable).
-3. **Python-first** — diagnostic toolchain targets Python repositories; other languages are out of scope.
-4. **Gemini dependency** — fix planning, code fix, peer review, and chat require API key and are subject to quota/latency.
-5. **Atlas networking** — misconfigured IP allow lists cause connection failures from Cloud Run.
-6. **Frontend Cloud Run** — requires absolute `VITE_API_BASE_URL` at build time; compose-style nginx upstream names do not work.
-7. **OpenAPI disabled in production** — `/docs` hidden when `THERECODE_ENVIRONMENT=production`.
-8. **Single-user model** — per-user projects; no multi-tenant org RBAC yet.
-9. **Manual git push fallback** — pipeline may skip git finalization if prerequisites fail; operator can push from run overview when fixes are applied.
-
----
 
 ## Future Improvements
 
@@ -599,11 +549,11 @@ Use a small Python repo with intentional issues (lint, Bandit finding, failing t
 | **AuthZ** | Organizations, roles, shared projects, audit log |
 | **Scanners** | JavaScript, Go, Terraform language packs |
 | **Observability** | OpenTelemetry traces per pipeline stage, Cloud Monitoring dashboards |
-| **Secrets** | Secret Manager + Workload Identity; remove baked `.env` from images |
 | **Vertex AI** | Optional `THERECODE_GOOGLE_GENAI_USE_VERTEXAI=true` for enterprise |
 | **CI integration** | GitHub Actions trigger on PR; status checks back to provider |
 | **Notifications** | Slack/email webhooks on approval required or PR created |
 | **Cost controls** | Per-run token budgets, model routing (flash vs pro) |
+| **Cost Monitoring** | Cost calculation per run/project |
 
 
 ---
