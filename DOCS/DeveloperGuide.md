@@ -89,56 +89,6 @@ chmod +x scripts/validate-docker.sh
 | `GET /api/v1/runs/{id}/findings` | List normalized findings for a run |
 | `GET /docs` | OpenAPI documentation |
 
-## Development
-
-### Backend tests
-
-```bash
-cd backend
-uv run pytest
-uv run ruff check .
-```
-
-### Frontend tests
-
-```bash
-cd frontend
-npm test
-npm run build
-```
-
-## Implementation Phases
-
-| Phase | Scope |
-|---|---|
-| 1 | Monorepo foundation |
-| 2 | FastAPI configuration + MongoDB |
-| 3 | Authentication |
-| 4 | Project and repository management |
-| 5 | GitHub/GitLab provider abstraction |
-| 6 | Workspace manager |
-| 7 | Project Intelligence |
-| 8 | Scanner services |
-| 9 | Diagnostic agents |
-| 10 | ADK root orchestration |
-| 11 | Issue correlation |
-| 12 | Fix planner |
-| 13 | Risk engine |
-| 14 | Code Fix Agent |
-| 15 | Verification engine |
-| 16 | Self-correction loop |
-| 17 | Regression test agent |
-| 18 | Multi-agent peer review |
-| 19 | Human-in-the-loop |
-| 20 | Memory system |
-| 21 | Git finalization |
-| 22 | Report generation |
-| 23 | React dashboard |
-| 24 | SSE live progress |
-| 25 | Diff viewer + approvals |
-| 28 | Dockerization |
-| 31 | Google ADK 2.0 migration (current) |
-| 29 | Cloud Run deployment |
 
 
 

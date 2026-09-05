@@ -1,10 +1,11 @@
 ![theReCode](./DOCS/resources/theReCode-logo-without-name.png)
 
 <h1 style="text-align:center; font-size:55px;">theReCode</h1>
+
 **Autonomous AI software-engineering platform for Python repositories on GitHub and GitLab.**
 
 
-theReCode analyzes real repositories, runs industry-standard diagnostics, plans and applies fixes with Gemini, verifies changes, performs multi-agent peer review, captures institutional memory, and opens pull requests — behaving like an autonomous software engineer, not a chatbot.
+theReCode analyzes real repositories, runs industry-standard diagnostics, plans and applies fixes with Gemini, verifies changes, performs multi-agent peer review, captures institutional memory, and opens pull requests behaving like an autonomous software engineer, not a chatbot.
 
 | Item | Value |
 |------|-------|
@@ -12,7 +13,6 @@ theReCode analyzes real repositories, runs industry-standard diagnostics, plans 
 | Backend version | `0.1.0` |
 | API base | `/api/v1` |
 | Orchestration | Google ADK 2.x + Gemini API |
-| Target repos | Python (FastAPI, Django, libraries, etc.) |
 
 ---
 
@@ -25,7 +25,7 @@ Software teams spend disproportionate time on work that is **repeatable but high
 - **Slow fix loops** — patch → test → rework cycles burn senior engineer hours. Knowledge from past fixes is rarely captured for the next run.
 - **Chatbot limits** — generic LLM assistants can suggest snippets, but they do not **clone a repo, run scanners, apply scoped patches, verify, get human approval, push a branch, and open a PR** with a full audit trail.
 
-**Hackathon insight:** Teams do not need another chat window. They need an **autonomous agent platform** that owns the end-to-end workflow on real Git repositories — with policy gates, human oversight, and reproducible artifacts.
+**Hackathon insight:** Teams do not need another chat window. They need an **autonomous agent platform** that owns the end-to-end workflow on real Git repositories with policy gates, human oversight, and reproducible artifacts.
 
 ---
 
@@ -52,68 +52,23 @@ Register → Link GitHub/GitLab repo → Save encrypted Git token
 | No delivery | Creates real Git branches and pull requests |
 | No memory | Captures project memories for future planning |
 
-**Monorepo layout**
 
-```
-backend/     FastAPI API, ADK orchestration, scanners, domain agents
-frontend/    React + Vite operator dashboard (live SSE progress)
-workspace/   Per-run clones, patches, diffs, reports (filesystem artifacts)
-```
 
 **Persistence**
 
 - **MongoDB** — users, projects, runs, findings, plans, approvals, memories, git operations, chat history
-- **Filesystem workspace** — clone trees, patch diffs, baseline JSON, markdown/PDF reports under `THERECODE_WORKSPACE_ROOT`
-
-**Primary entrypoint**
-
-`POST /api/v1/runs/{id}/execute` → `GoogleAdkOrchestrator` walks the ADK `Workflow` graph end-to-end.
+- **Filesystem workspace** — clone trees, patch diffs, baseline JSON, markdown/PDF reports under
 
 ---
 
-## Features
+## Architecture
+![](./DOCS/resources/theReCode-Architecture-v1.png)
+### High-level system diagram
+![](./DOCS/resources/agent-architecture.png)
+<!-- ![project-architecture](./DOCS/resources/theReCode-project-architecture.png) -->
 
-### Operator dashboard
 
-| Route | Capability |
-|-------|------------|
-| `/login`, `/register` | JWT authentication |
-| `/dashboard` | Project/run summary metrics, recent activity |
-| `/projects` | Create/list projects; cards show repo count, run count, latest status |
-| `/projects/:projectId` | Link repos, start runs, view linked repositories and run history |
-| `/runs/:runId` | Run overview — pipeline graph, agent timeline, clone/execute/**git push** |
-| `/runs/:runId/findings` | Normalized findings from all diagnostic agents |
-| `/runs/:runId/diff` | Fix-attempt diffs |
-| `/runs/:runId/approvals` | Human-in-the-loop cards (`approve` / `reject` / `request_changes`) |
-| `/runs/:runId/reports` | Generated markdown/PDF run reports |
-| `/runs/:runId/chat` | Gemini-powered Q&A about the run (findings, fixes, report context) |
-| `/chat` | Select project → run → ask questions |
-| `/settings` | Account + encrypted Git credentials (GitHub/GitLab PAT) |
-
-Live progress uses **Server-Sent Events** (`GET /api/v1/runs/{id}/stream`).
-
-### Platform capabilities
-
-- **Authentication** — register, login, JWT bearer tokens
-- **Projects & repositories** — link GitHub/GitLab repos, validate access, clone
-- **Encrypted Git credentials** — provider tokens encrypted at rest
-- **Workspace manager** — isolated per-run directories (`baseline/`, `patches/`, `reports/`)
-- **Project intelligence** — structural analysis of the cloned codebase
-- **Seven diagnostic agents** — wrap industry scanners (see table below)
-- **Issue correlation** — group related findings into actionable issue groups
-- **Fix planning** — Gemini fix planner produces scoped patch plans
-- **Risk policy engine** — autonomous vs approval-required decisions
-- **Code fix agent** — Gemini applies patches with scope enforcement
-- **Verification engine** — re-run tests and scanners on applied fixes
-- **Self-correction loop** — retry failed verifications (configurable max iterations)
-- **Regression tests** — generated/executed after verification passes
-- **Multi-agent peer review** — Security, Testing, Architecture reviewers + synthesizer
-- **Human approvals** — risk gate and final review with diff viewer
-- **Institutional memory** — `project`, `decision`, `failure`, `success_strategy` types
-- **Git finalization** — branch `fix/<run_id>`, commit, push, open PR/MR (pipeline + manual UI button)
-- **Run reports** — markdown + PDF with health score and PR metadata
-- **Run chat** — contextual Gemini chat grounded in run artifacts
-- **Dark/light theme** — Flowbite design system
+---
 
 ### Diagnostic agents
 
@@ -131,14 +86,7 @@ Live progress uses **Server-Sent Events** (`GET /api/v1/runs/{id}/stream`).
 
 `CREATED` → `CLONING` → `ANALYZING` → `DIAGNOSING` → `PLANNING` → `AWAITING_APPROVAL` → `FIXING` → `VERIFYING` → `SELF_CORRECTING` → `PEER_REVIEW` → `FINAL_REVIEW` → `PUSHING` → `REPORTING` → `COMPLETED` | `FAILED` | `CANCELLED`
 
----
-
-## Architecture
-![](./DOCS/resources/theReCode-Architecture-v1.png)
-### High-level system diagram
-![](./DOCS/resources/agent-architecture.png)
-<!-- ![project-architecture](./DOCS/resources/theReCode-project-architecture.png) -->
-
+# --------------- FILE STRUCTURE --------------------
 ### Frontend structure
 
 ```text
@@ -164,9 +112,11 @@ frontend/src/
 
 ---
 
+
+
 ## Agent Architecture
 
-theReCode is a **multi-agent platform**, not a single monolithic LLM call. Orchestration combines **deterministic pipeline nodes** (reliable, auditable) with **Gemini specialist agents** (reasoning where needed).
+theReCode is a **multi-agent platform**, not a single monolithic LLM call. Orchestration combines **deterministic pipeline nodes** with **Gemini specialist agents** .
 
 ### Orchestration stages
 
@@ -217,6 +167,51 @@ Python packages under `backend/app/adk/` implement diagnostics, correlation, fix
 - Domain state is durable in MongoDB + workspace; ADK session is orchestration-scoped only
 
 ---
+
+## Features
+
+### Operator dashboard
+
+| Route | Capability |
+|-------|------------|
+| `/login`, `/register` | JWT authentication |
+| `/dashboard` | Project/run summary metrics, recent activity |
+| `/projects` | Create/list projects; cards show repo count, run count, latest status |
+| `/projects/:projectId` | Link repos, start runs, view linked repositories and run history |
+| `/runs/:runId` | Run overview — pipeline graph, agent timeline, clone/execute/**git push** |
+| `/runs/:runId/findings` | Normalized findings from all diagnostic agents |
+| `/runs/:runId/diff` | Fix-attempt diffs |
+| `/runs/:runId/approvals` | Human-in-the-loop cards (`approve` / `reject` / `request_changes`) |
+| `/runs/:runId/reports` | Generated markdown/PDF run reports |
+| `/runs/:runId/chat` | Gemini-powered Q&A about the run (findings, fixes, report context) |
+| `/chat` | Select project → run → ask questions |
+| `/settings` | Account + encrypted Git credentials (GitHub/GitLab PAT) |
+
+Live progress uses **Server-Sent Events** (`GET /api/v1/runs/{id}/stream`).
+
+### Platform capabilities
+
+- **Authentication** — register, login, JWT bearer tokens
+- **Projects & repositories** — link GitHub/GitLab repos, validate access, clone
+- **Encrypted Git credentials** — provider tokens encrypted at rest
+- **Workspace manager** — isolated per-run directories (`baseline/`, `patches/`, `reports/`)
+- **Project intelligence** — structural analysis of the cloned codebase
+- **Seven diagnostic agents** — wrap industry scanners (see table below)
+- **Issue correlation** — group related findings into actionable issue groups
+- **Fix planning** — Gemini fix planner produces scoped patch plans
+- **Risk policy engine** — autonomous vs approval-required decisions
+- **Code fix agent** — Gemini applies patches with scope enforcement
+- **Verification engine** — re-run tests and scanners on applied fixes
+- **Self-correction loop** — retry failed verifications (configurable max iterations)
+- **Regression tests** — generated/executed after verification passes
+- **Multi-agent peer review** — Security, Testing, Architecture reviewers + synthesizer
+- **Human approvals** — risk gate and final review with diff viewer
+- **Institutional memory** — `project`, `decision`, `failure`, `success_strategy` types
+- **Git finalization** — branch `fix/<run_id>`, commit, push, open PR/MR (pipeline + manual UI button)
+- **Run reports** — markdown + PDF with health score and PR metadata
+- **Run chat** — contextual Gemini chat grounded in run artifacts
+- **Dark/light theme** — Flowbite design system
+
 
 ## Technology Stack
 
@@ -544,26 +539,6 @@ Prefix: **`THERECODE_`** (backend). Frontend: **`VITE_`**.
 
 ---
 
-## Demo
-
-### 5-minute judge demo script
-
-**Goal:** Show autonomous SDLC on a real Python repo with human gate and PR output.
-
-| Step | Action | What to highlight |
-|------|--------|-------------------|
-| 1 | Open dashboard, sign in | Clean operator UI |
-| 2 | Settings → save GitHub PAT | Encrypted credential storage |
-| 3 | Projects → create project → link `owner/repo` | Git provider integration |
-| 4 | Create run → open run overview | Workspace + pipeline graph |
-| 5 | **Run full pipeline** | ADK workflow executes; SSE live timeline |
-| 6 | Show **Findings** tab | Seven scanners normalized |
-| 7 | If paused → **Approvals** tab → approve | Human-in-the-loop |
-| 8 | Show **Diff** tab | Scoped patch artifacts |
-| 9 | **Push to GitHub** on overview | Branch `fix/<run_id>`, PR created |
-| 10 | **Reports** tab | Markdown report + health score |
-| 11 | **Chat** tab → ask "What security issues were found?" | Gemini grounded in run context |
-
 ### Local quick start
 
 ```bash
@@ -601,40 +576,6 @@ Use a small Python repo with intentional issues (lint, Bandit finding, failing t
 
 ---
 
-## Testing
-
-### Backend
-
-```bash
-cd backend
-uv sync
-uv run pytest
-uv run ruff check .
-```
-
-- `asyncio_mode = auto`
-- Marker `integration` for Mongo-backed tests
-- Coverage: services, ADK nodes, git finalization, chat, approvals, scanners
-
-### Frontend
-
-```bash
-cd frontend
-npm test
-npm run build
-```
-
-### Docker validation
-
-```bash
-chmod +x scripts/validate-docker.sh
-./scripts/validate-docker.sh
-```
-
-Validates compose config, image builds, and health endpoints.
-
----
-
 ## Limitations
 
 1. **Ephemeral Cloud Run workspace** — `/workspace` does not survive instance recycle; full pipeline resume after long delays may require re-clone.
@@ -669,4 +610,4 @@ Validates compose config, image builds, and health endpoints.
 
 ## License
 
-Proprietary — theReCode
+Proprietary — MIT license

@@ -4,7 +4,7 @@ from typing import Literal
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# backend/app/.env (same folder as the app package)
+# backend/app/.env
 _APP_ENV_FILE = Path(__file__).resolve().parents[1] / ".env"
 
 
@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     workspace_root: Path = Path("../workspace")
     log_level: str = "INFO"
     log_format: Literal["json", "text"] = "text"
-    mongodb_uri: str = "mongodb://localhost:27017"
+    mongodb_uri: str = ""
     mongodb_database_name: str = "therecode"
     mongodb_server_selection_timeout_ms: int = 5000
     mongodb_connect_timeout_ms: int = 5000
