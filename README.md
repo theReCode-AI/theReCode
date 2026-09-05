@@ -149,10 +149,11 @@ cd frontend
 npm install
 npm run dev
 ```
+Set `VITE_API_BASE_URL='http://localhost:8000/api/v1'` in `.env.development` or rely on Vite proxy.
+
 
 Open http://localhost:5173
 
-Set `VITE_API_BASE_URL=http://localhost:8000/api/v1` in `.env` or rely on Vite proxy.
 
 ### Full stack via Docker
 
