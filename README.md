@@ -175,7 +175,7 @@ docker compose --profile app up --build
 
 <!-- ### Video tutorial -->
 
-## [Video Tutorial](https://www.youtube.com/embed/OZPB2GuU4T8?start=85)
+## [Video Tutorial](https://youtu.be/OZPB2GuU4T8?si=CvmTlc1IC9hmzRCH&t=85)
 
 
 
