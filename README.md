@@ -91,57 +91,58 @@ Register → Link GitHub/GitLab repo → Save encrypted Git token
 
 # DEVELOPER GUIDE
 
+
+## Prerequisites
+
+- Python 3.12+, uv, Node.js 22+, Docker
+
 ## Setup
 
-### 1. Clone and configure
+### 1. Clone
 
 ```bash
 git clone https://github.com/theReCode-AI/theReCode.git -b main
-cd harpic-agent-ai-cursor
+cd theReCode/
+```
+
+
+### 2. Configure backend
+```bash
+cd backend
+uv sync
+source .venv/bin/activate
+```
+then
+
+```bash
+cd app #/theReCode/backend/app
 cp .env.example .env
 ```
 
 Edit `.env`:
 
 - `THERECODE_GOOGLE_API_KEY` — required for pipeline and chat
+- `THERECODE_GEMINI_MODEL` — `<your-gemini-model>`, default `gemini-3.6-flash` 
 - `THERECODE_JWT_SECRET_KEY` — change from dev default in production
 - `THERECODE_CREDENTIALS_ENCRYPTION_KEY` — 32+ char key for Git token encryption
-- `THERECODE_MONGODB_URI` — local or Atlas connection string
+- `THERECODE_MONGODB_URI` — ` mongodb://<username>:<password>@localhost:27017/therecode?authSource=admin` or `mongodb+srv://username:password@cluster0.example.mongodb.net`
 
 Backend also reads `backend/app/.env` (used in Docker/Cloud images).
 
-### 2. Prerequisites
-
-- Python 3.12+, uv, Node.js 22+, Docker
-
-### 3. Docker Compose env (optional)
+run the application
 
 ```bash
-cp .env.docker.example .env
-```
-
----
-
-## Local Development
-
-### Start MongoDB
-
-```bash
-docker compose up -d mongodb
-```
-
-### Backend
-
-```bash
-cd backend
-uv sync
 uv run uvicorn app.main:app --reload --port 8000
 ```
 
+Open the following links in your browser:
 - API: http://localhost:8000
-- OpenAPI: http://localhost:8000/docs (disabled when `THERECODE_ENVIRONMENT=production`)
+- OpenAPI: http://localhost:8000/docs
 
-### Frontend
+
+
+
+### 3. Configure Frontend
 
 ```bash
 cd frontend
