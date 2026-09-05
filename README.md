@@ -167,60 +167,14 @@ docker compose --profile app up --build
 |---------|-----|
 | Frontend | http://localhost:5173 |
 | Backend | http://localhost:8000 |
-| MongoDB | localhost:27017 |
 
 ---
+## 4. Web Interface
+![register](./DOCS/resources/web-interface/therecode-register-page.png)
+![login](./DOCS/resources/web-interface/therecode-login-page.png)
 
-
----
-
-## Environment Variables
-
-Prefix: **`THERECODE_`** (backend). Frontend: **`VITE_`**.
-
-### Application
-
-| Variable | Description |
-|----------|-------------|
-| `THERECODE_APP_NAME` | Display name |
-| `THERECODE_ENVIRONMENT` | `development` \| `staging` \| `production` \| `test` |
-| `THERECODE_API_PREFIX` | Default `/api/v1` |
-| `THERECODE_HOST` / `THERECODE_PORT` | Bind address |
-| `THERECODE_CORS_ORIGINS` | Comma-separated allowed origins |
-| `THERECODE_WORKSPACE_ROOT` | Clone/artifact root (`../workspace` local, `/workspace` containers) |
-| `THERECODE_LOG_LEVEL` | e.g. `INFO` |
-| `THERECODE_LOG_FORMAT` | `text` \| `json` |
-
-### MongoDB
-
-| Variable | Description |
-|----------|-------------|
-| `THERECODE_MONGODB_URI` | Connection string |
-| `THERECODE_MONGODB_DATABASE_NAME` | Default `therecode` |
-
-### Auth & credentials
-
-| Variable | Description |
-|----------|-------------|
-| `THERECODE_JWT_SECRET_KEY` | JWT signing secret |
-| `THERECODE_JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | Default `60` |
-| `THERECODE_CREDENTIALS_ENCRYPTION_KEY` | Git token encryption key |
-
-### Gemini / ADK
-
-| Variable | Description |
-|----------|-------------|
-| `THERECODE_GOOGLE_API_KEY` | Gemini API key (**required**) |
-| `THERECODE_GOOGLE_GENAI_USE_VERTEXAI` | `false` for AI Studio |
-| `THERECODE_GEMINI_MODEL` | e.g. `gemini-2.5-flash` |
-| `THERECODE_GOOGLE_ADK_APP_NAME` | Default `therecode` |
-
-### Frontend
-
-| Variable | Description |
-|----------|-------------|
-| `VITE_API_BASE_URL` | API base URL (baked at build time for Cloud Run) |
-
+### Video tutorial
+<iframe width="560" height="315" src="https://www.youtube.com/embed/OZPB2GuU4T8?si=i-QTpioFBt8Bq3yR&amp;start=85" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 ---
 
 
