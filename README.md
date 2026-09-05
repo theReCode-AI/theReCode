@@ -86,6 +86,142 @@ Register → Link GitHub/GitLab repo → Save encrypted Git token
 
 `CREATED` → `CLONING` → `ANALYZING` → `DIAGNOSING` → `PLANNING` → `AWAITING_APPROVAL` → `FIXING` → `VERIFYING` → `SELF_CORRECTING` → `PEER_REVIEW` → `FINAL_REVIEW` → `PUSHING` → `REPORTING` → `COMPLETED` | `FAILED` | `CANCELLED`
 
+
+# --------------- DEVELOPER GUIDE --------------------
+
+# DEVELOPER GUIDE
+
+## Setup
+
+### 1. Clone and configure
+
+```bash
+git clone https://github.com/theReCode-AI/theReCode.git -b main
+cd harpic-agent-ai-cursor
+cp .env.example .env
+```
+
+Edit `.env`:
+
+- `THERECODE_GOOGLE_API_KEY` — required for pipeline and chat
+- `THERECODE_JWT_SECRET_KEY` — change from dev default in production
+- `THERECODE_CREDENTIALS_ENCRYPTION_KEY` — 32+ char key for Git token encryption
+- `THERECODE_MONGODB_URI` — local or Atlas connection string
+
+Backend also reads `backend/app/.env` (used in Docker/Cloud images).
+
+### 2. Prerequisites
+
+- Python 3.12+, uv, Node.js 22+, Docker
+
+### 3. Docker Compose env (optional)
+
+```bash
+cp .env.docker.example .env
+```
+
+---
+
+## Local Development
+
+### Start MongoDB
+
+```bash
+docker compose up -d mongodb
+```
+
+### Backend
+
+```bash
+cd backend
+uv sync
+uv run uvicorn app.main:app --reload --port 8000
+```
+
+- API: http://localhost:8000
+- OpenAPI: http://localhost:8000/docs (disabled when `THERECODE_ENVIRONMENT=production`)
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open http://localhost:5173
+
+Set `VITE_API_BASE_URL=http://localhost:8000/api/v1` in `.env` or rely on Vite proxy.
+
+### Full stack via Docker
+
+```bash
+cp .env.docker.example .env
+docker compose --profile app up --build
+./scripts/validate-docker.sh
+```
+
+| Service | URL |
+|---------|-----|
+| Frontend | http://localhost:5173 |
+| Backend | http://localhost:8000 |
+| MongoDB | localhost:27017 |
+
+---
+
+
+---
+
+## Environment Variables
+
+Prefix: **`THERECODE_`** (backend). Frontend: **`VITE_`**.
+
+### Application
+
+| Variable | Description |
+|----------|-------------|
+| `THERECODE_APP_NAME` | Display name |
+| `THERECODE_ENVIRONMENT` | `development` \| `staging` \| `production` \| `test` |
+| `THERECODE_API_PREFIX` | Default `/api/v1` |
+| `THERECODE_HOST` / `THERECODE_PORT` | Bind address |
+| `THERECODE_CORS_ORIGINS` | Comma-separated allowed origins |
+| `THERECODE_WORKSPACE_ROOT` | Clone/artifact root (`../workspace` local, `/workspace` containers) |
+| `THERECODE_LOG_LEVEL` | e.g. `INFO` |
+| `THERECODE_LOG_FORMAT` | `text` \| `json` |
+
+### MongoDB
+
+| Variable | Description |
+|----------|-------------|
+| `THERECODE_MONGODB_URI` | Connection string |
+| `THERECODE_MONGODB_DATABASE_NAME` | Default `therecode` |
+
+### Auth & credentials
+
+| Variable | Description |
+|----------|-------------|
+| `THERECODE_JWT_SECRET_KEY` | JWT signing secret |
+| `THERECODE_JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | Default `60` |
+| `THERECODE_CREDENTIALS_ENCRYPTION_KEY` | Git token encryption key |
+
+### Gemini / ADK
+
+| Variable | Description |
+|----------|-------------|
+| `THERECODE_GOOGLE_API_KEY` | Gemini API key (**required**) |
+| `THERECODE_GOOGLE_GENAI_USE_VERTEXAI` | `false` for AI Studio |
+| `THERECODE_GEMINI_MODEL` | e.g. `gemini-2.5-flash` |
+| `THERECODE_GOOGLE_ADK_APP_NAME` | Default `therecode` |
+
+### Frontend
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_API_BASE_URL` | API base URL (baked at build time for Cloud Run) |
+
+---
+
+
 # --------------- FILE STRUCTURE --------------------
 ### Frontend structure
 
@@ -366,180 +502,7 @@ Typical production layout (see `deploy.txt`):
 
 ---
 
-## Setup
-
-### 1. Clone and configure
-
-```bash
-git clone <repo-url>
-cd harpic-agent-ai-cursor
-cp .env.example .env
-```
-
-Edit `.env`:
-
-- `THERECODE_GOOGLE_API_KEY` — required for pipeline and chat
-- `THERECODE_JWT_SECRET_KEY` — change from dev default in production
-- `THERECODE_CREDENTIALS_ENCRYPTION_KEY` — 32+ char key for Git token encryption
-- `THERECODE_MONGODB_URI` — local or Atlas connection string
-
-Backend also reads `backend/app/.env` (used in Docker/Cloud images).
-
-### 2. Prerequisites
-
-- Python 3.12+, uv, Node.js 22+, Docker
-
-### 3. Docker Compose env (optional)
-
-```bash
-cp .env.docker.example .env
-```
-
----
-
-## Local Development
-
-### Start MongoDB
-
-```bash
-docker compose up -d mongodb
-```
-
-### Backend
-
-```bash
-cd backend
-uv sync
-uv run uvicorn app.main:app --reload --port 8000
-```
-
-- API: http://localhost:8000
-- OpenAPI: http://localhost:8000/docs (disabled when `THERECODE_ENVIRONMENT=production`)
-
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Open http://localhost:5173
-
-Set `VITE_API_BASE_URL=http://localhost:8000/api/v1` in `.env` or rely on Vite proxy.
-
-### Full stack via Docker
-
-```bash
-cp .env.docker.example .env
-docker compose --profile app up --build
-./scripts/validate-docker.sh
-```
-
-| Service | URL |
-|---------|-----|
-| Frontend | http://localhost:5173 |
-| Backend | http://localhost:8000 |
-| MongoDB | localhost:27017 |
-
----
-
-## Cloud Deployment
-
-### Artifact Registry
-
-```bash
-gcloud artifacts repositories create therecode \
-  --repository-format=docker \
-  --location=REGION \
-  --description="theReCode images"
-```
-
-### Backend image + Cloud Run
-
-```bash
-gcloud builds submit ./backend \
-  --config=./backend/cloudbuild.yaml \
-  --substitutions=_IMAGE=REGION-docker.pkg.dev/PROJECT/therecode/backend:latest
-
-gcloud run deploy therecode-api \
-  --image REGION-docker.pkg.dev/PROJECT/therecode/backend:latest \
-  --region REGION \
-  --port 8000 \
-  --allow-unauthenticated \
-  --set-env-vars "THERECODE_MONGODB_URI=mongodb+srv://...,THERECODE_WORKSPACE_ROOT=/workspace,THERECODE_ENVIRONMENT=production,THERECODE_GOOGLE_GENAI_USE_VERTEXAI=false,THERECODE_GEMINI_MODEL=gemini-2.5-flash"
-```
-
-Store `THERECODE_GOOGLE_API_KEY`, JWT secret, and encryption key in **Secret Manager** for production.
-
-### Frontend image + Cloud Run
-
-```bash
-gcloud builds submit ./frontend \
-  --config=./frontend/cloudbuild.yaml \
-  --substitutions=_IMAGE=REGION-docker.pkg.dev/PROJECT/therecode/frontend:latest,_VITE_API_BASE_URL=https://BACKEND_URL/api/v1
-
-gcloud run deploy therecode-ui \
-  --image REGION-docker.pkg.dev/PROJECT/therecode/frontend:latest \
-  --region REGION \
-  --port 8080 \
-  --allow-unauthenticated
-```
-
-Update backend `THERECODE_CORS_ORIGINS` with the frontend Cloud Run origin.
-
----
-
-## Environment Variables
-
-Prefix: **`THERECODE_`** (backend). Frontend: **`VITE_`**.
-
-### Application
-
-| Variable | Description |
-|----------|-------------|
-| `THERECODE_APP_NAME` | Display name |
-| `THERECODE_ENVIRONMENT` | `development` \| `staging` \| `production` \| `test` |
-| `THERECODE_API_PREFIX` | Default `/api/v1` |
-| `THERECODE_HOST` / `THERECODE_PORT` | Bind address |
-| `THERECODE_CORS_ORIGINS` | Comma-separated allowed origins |
-| `THERECODE_WORKSPACE_ROOT` | Clone/artifact root (`../workspace` local, `/workspace` containers) |
-| `THERECODE_LOG_LEVEL` | e.g. `INFO` |
-| `THERECODE_LOG_FORMAT` | `text` \| `json` |
-
-### MongoDB
-
-| Variable | Description |
-|----------|-------------|
-| `THERECODE_MONGODB_URI` | Connection string |
-| `THERECODE_MONGODB_DATABASE_NAME` | Default `therecode` |
-
-### Auth & credentials
-
-| Variable | Description |
-|----------|-------------|
-| `THERECODE_JWT_SECRET_KEY` | JWT signing secret |
-| `THERECODE_JWT_ACCESS_TOKEN_EXPIRE_MINUTES` | Default `60` |
-| `THERECODE_CREDENTIALS_ENCRYPTION_KEY` | Git token encryption key |
-
-### Gemini / ADK
-
-| Variable | Description |
-|----------|-------------|
-| `THERECODE_GOOGLE_API_KEY` | Gemini API key (**required**) |
-| `THERECODE_GOOGLE_GENAI_USE_VERTEXAI` | `false` for AI Studio |
-| `THERECODE_GEMINI_MODEL` | e.g. `gemini-2.5-flash` |
-| `THERECODE_GOOGLE_ADK_APP_NAME` | Default `therecode` |
-
-### Frontend
-
-| Variable | Description |
-|----------|-------------|
-| `VITE_API_BASE_URL` | API base URL (baked at build time for Cloud Run) |
-
----
-
-
+# --------------- finalize ---------------------------
 ## Future Improvements
 
 | Area | Improvement |
