@@ -170,14 +170,23 @@ docker compose --profile app up --build
 
 ---
 ## 4. Web Interface
+Register 
 ![register](./DOCS/resources/web-interface/therecode-register-page.png)
+Login
 ![login](./DOCS/resources/web-interface/therecode-login-page.png)
 
+
 <!-- ### Video tutorial -->
-
-## [Video Tutorial](https://youtu.be/OZPB2GuU4T8?si=CvmTlc1IC9hmzRCH&t=85)
-
-
+<h1 align="center">VIDEO TUTORIAL</h1>
+<p align="center">
+  <a href="https://youtu.be/OZPB2GuU4T8?t=85" target="_blank">
+    <img
+      src="https://img.youtube.com/vi/OZPB2GuU4T8/maxresdefault.jpg"
+      alt="theReCoder Demo"
+      width="800"
+    />
+  </a>
+</p>
 
 ---
 
