@@ -191,7 +191,7 @@ Login
 ---
 
 
-# --------------- FILE STRUCTURE --------------------
+# FILE STRUCTURE
 ### Frontend structure
 
 ```text
@@ -203,25 +203,59 @@ frontend/src/
   routes/        React Router tree
   types/         Shared TypeScript models
 ```
+---
 
 
-### Execute data flow
+## Technology Stack
 
-1. User authenticates (JWT).
-2. Creates project, links repository, stores encrypted Git credential.
-3. Creates run → workspace paths allocated under `THERECODE_WORKSPACE_ROOT`.
-4. `POST .../execute` → ADK `Runner` walks the workflow graph.
-5. Deterministic `@node` stages write Mongo + disk artifacts; Gemini specialists invoke typed `FunctionTool`s.
-6. UI subscribes via SSE (`snapshot`, `run_update`, `state_update`, `agent_event`, `heartbeat`, `complete`).
-7. Operator reviews approvals, pushes to GitHub from run overview, reads report and PR link.
+### Prerequisites
+
+| Tool | Version |
+|------|---------|
+| Python | 3.12+ (`>=3.12,<3.14`) |
+| uv | [Astral uv](https://docs.astral.sh/uv/) |
+| Node.js | 22+ |
+| Docker / Docker Compose | for deploy |
+
+### Backend
+
+| Component | Role |
+|-----------|------|
+| FastAPI | HTTP API |
+| Uvicorn | ASGI server |
+| Pydantic / pydantic-settings | Config & schemas|
+| PyMongo | MongoDB driver |
+| PyJWT + bcrypt | Authentication |
+| Cryptography | Git credential encryption |
+| httpx | Git provider HTTP |
+| **google-adk ≥ 2.8** | Workflow orchestration |
+| google-genai | Gemini client |
+| Ruff, Semgrep, Bandit | Python scanners |
+| osv-scanner, gitleaks | Security binaries (Docker image) |
+| pytest + coverage | Test/coverage agents |
+
+
+
+### Frontend
+
+| Component | Role |
+|-----------|------|
+| React 18 | UI framework |
+| Vite 5 | Dev server & production build |
+| TypeScript ~5.6 | Type safety |
+| React Router 6 | Client routing |
+| TanStack Query 5 | Server state / caching |
+| Zustand 5 | Auth and shell state |
+| Tailwind CSS 3 + Flowbite React | Design system |
+| Vitest | Unit tests |
+| nginx (Alpine) | Production static hosting |
 
 ---
 
 
-
 ## Agent Architecture
 
-theReCode is a **multi-agent platform**, not a single monolithic LLM call. Orchestration combines **deterministic pipeline nodes** with **Gemini specialist agents** .
+**theReCode** is a **multi-agent platform**, not a single monolithic LLM call. Orchestration combines **deterministic pipeline nodes** with **Gemini specialist agents** .
 
 ### Orchestration stages
 
@@ -238,12 +272,7 @@ Built in `backend/app/google_adk/workflow_builder.py`:
 | `therecode_autonomous_run` | Full pipeline from initialize through finalize |
 | `therecode_post_risk_approval_run` | Resume after risk-gate human approval (code fix onward) |
 
-### Stage types
 
-| Kind | Examples | Implementation |
-|------|----------|----------------|
-| **Deterministic nodes** | Clone, diagnostics, correlate, risk, verify, self-correct, regression, memory, git, report | `@node` functions in `pipeline_nodes.py` → service container |
-| **LLM specialists** | Fix planning, code fix, peer review | Gemini `LlmAgent` + `FunctionTool` in `specialists.py` |
 
 ### Gemini specialist agents
 
@@ -255,112 +284,18 @@ Built in `backend/app/google_adk/workflow_builder.py`:
 
 Peer-review sub-roles live under `backend/app/adk/peer_review/` with a **Synthesizer** that produces a final verdict.
 
-### Domain agent packages
-
-Python packages under `backend/app/adk/` implement diagnostics, correlation, fix planner, risk, code fix, verification, self-correction, regression, peer review, memory, git finalization, and reporting — invoked by services and ADK nodes.
 
 ### Human-in-the-loop
 
-- **Risk gate** — high-risk patch plans pause the pipeline (`AWAITING_APPROVAL`) until a human decides.
+- **Risk gate** — high-risk patch plans pause the pipeline until a human decides.
 - **Final review** — peer review may request changes; approval cards include diff artifacts.
-- **Resume** — `POST /runs/{id}/execute` with `resume_after_approval: true` continues via `therecode_post_risk_approval_run`.
+- **Resume** — Run next step after approval/reject/fix request.
 
 ### Sessions
 
 - ADK app name: `THERECODE_GOOGLE_ADK_APP_NAME` (default `therecode`)
 - Session service: **in-memory** (`InMemorySessionService`), `session_id = run_id`
 - Domain state is durable in MongoDB + workspace; ADK session is orchestration-scoped only
-
----
-
-## Features
-
-### Operator dashboard
-
-| Route | Capability |
-|-------|------------|
-| `/login`, `/register` | JWT authentication |
-| `/dashboard` | Project/run summary metrics, recent activity |
-| `/projects` | Create/list projects; cards show repo count, run count, latest status |
-| `/projects/:projectId` | Link repos, start runs, view linked repositories and run history |
-| `/runs/:runId` | Run overview — pipeline graph, agent timeline, clone/execute/**git push** |
-| `/runs/:runId/findings` | Normalized findings from all diagnostic agents |
-| `/runs/:runId/diff` | Fix-attempt diffs |
-| `/runs/:runId/approvals` | Human-in-the-loop cards (`approve` / `reject` / `request_changes`) |
-| `/runs/:runId/reports` | Generated markdown/PDF run reports |
-| `/runs/:runId/chat` | Gemini-powered Q&A about the run (findings, fixes, report context) |
-| `/chat` | Select project → run → ask questions |
-| `/settings` | Account + encrypted Git credentials (GitHub/GitLab PAT) |
-
-Live progress uses **Server-Sent Events** (`GET /api/v1/runs/{id}/stream`).
-
-### Platform capabilities
-
-- **Authentication** — register, login, JWT bearer tokens
-- **Projects & repositories** — link GitHub/GitLab repos, validate access, clone
-- **Encrypted Git credentials** — provider tokens encrypted at rest
-- **Workspace manager** — isolated per-run directories (`baseline/`, `patches/`, `reports/`)
-- **Project intelligence** — structural analysis of the cloned codebase
-- **Seven diagnostic agents** — wrap industry scanners (see table below)
-- **Issue correlation** — group related findings into actionable issue groups
-- **Fix planning** — Gemini fix planner produces scoped patch plans
-- **Risk policy engine** — autonomous vs approval-required decisions
-- **Code fix agent** — Gemini applies patches with scope enforcement
-- **Verification engine** — re-run tests and scanners on applied fixes
-- **Self-correction loop** — retry failed verifications (configurable max iterations)
-- **Regression tests** — generated/executed after verification passes
-- **Multi-agent peer review** — Security, Testing, Architecture reviewers + synthesizer
-- **Human approvals** — risk gate and final review with diff viewer
-- **Institutional memory** — `project`, `decision`, `failure`, `success_strategy` types
-- **Git finalization** — branch `fix/<run_id>`, commit, push, open PR/MR (pipeline + manual UI button)
-- **Run reports** — markdown + PDF with health score and PR metadata
-- **Run chat** — contextual Gemini chat grounded in run artifacts
-- **Dark/light theme** — Flowbite design system
-
-
-## Technology Stack
-
-### Prerequisites
-
-| Tool | Version |
-|------|---------|
-| Python | 3.12+ (`>=3.12,<3.14`) |
-| uv | [Astral uv](https://docs.astral.sh/uv/) |
-| Node.js | 22+ |
-| Docker / Docker Compose | For MongoDB and full-stack deploy |
-
-### Backend
-
-| Component | Role |
-|-----------|------|
-| FastAPI | HTTP API |
-| Uvicorn | ASGI server |
-| Pydantic / pydantic-settings | Config & schemas (`THERECODE_` prefix) |
-| PyMongo | MongoDB driver |
-| PyJWT + bcrypt | Authentication |
-| Cryptography | Git credential encryption |
-| httpx | Git provider HTTP |
-| **google-adk ≥ 2.8** | Workflow orchestration |
-| google-genai | Gemini client |
-| Ruff, Semgrep, Bandit | Python scanners |
-| osv-scanner, gitleaks | Security binaries (Docker image) |
-| pytest + coverage | Test/coverage agents |
-
-Docker: **`mongo:7`** for database; backend image is Python **3.12** slim with scanner binaries.
-
-### Frontend
-
-| Component | Role |
-|-----------|------|
-| React 18 | UI framework |
-| Vite 5 | Dev server & production build |
-| TypeScript ~5.6 | Type safety |
-| React Router 6 | Client routing |
-| TanStack Query 5 | Server state / caching |
-| Zustand 5 | Auth and shell state |
-| Tailwind CSS 3 + Flowbite React | Design system |
-| Vitest | Unit tests |
-| nginx (Alpine) | Production static hosting |
 
 ---
 
@@ -470,6 +405,32 @@ Typical production layout (see `deploy.txt`):
 | Cloud Run frontend | Absolute `VITE_API_BASE_URL` to backend service URL |
 
 ---
+
+
+## Features
+
+### Platform capabilities
+
+- **Authentication** — register, login, JWT bearer tokens
+- **Projects & repositories** — link GitHub/GitLab repos, validate access, clone
+- **Encrypted Git credentials** — provider tokens encrypted at rest
+- **Workspace manager** — isolated per-run directories (`baseline/`, `patches/`, `reports/`)
+- **Project intelligence** — structural analysis of the cloned codebase
+- **Seven diagnostic agents** — wrap industry scanners (see table below)
+- **Issue correlation** — group related findings into actionable issue groups
+- **Fix planning** — Gemini fix planner produces scoped patch plans
+- **Risk policy engine** — autonomous vs approval-required decisions
+- **Code fix agent** — Gemini applies patches with scope enforcement
+- **Verification engine** — re-run tests and scanners on applied fixes
+- **Self-correction loop** — retry failed verifications (configurable max iterations)
+- **Regression tests** — generated/executed after verification passes
+- **Multi-agent peer review** — Security, Testing, Architecture reviewers + synthesizer
+- **Human approvals** — risk gate and final review with diff viewer
+- **Institutional memory** — `project`, `decision`, `failure`, `success_strategy` types
+- **Git finalization** — branch `fix/<run_id>`, commit, push, open PR/MR (pipeline + manual UI button)
+- **Run reports** — markdown + PDF with health score and PR metadata
+- **Run chat** — contextual Gemini chat grounded in run artifacts
+- **Dark/light theme** — Flowbite design system
 
 # --------------- finalize ---------------------------
 ## Future Improvements
